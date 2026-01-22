@@ -35,6 +35,11 @@ local defaults = {
     comment  = { "a"   , "fg_comment" , desc = "Add Comment" },
     close    = { "x"   , "fg_close"   , desc = "Close" },
     reopen   = { "o"   , "fg_reopen"  , desc = "Reopen" },
+    refresh  = { "r"   , function(item, buf)
+      if buf and buf.update then
+        buf:update()
+      end
+    end, desc = "Refresh PR" },
   },
 
   ---@type vim.wo|{}

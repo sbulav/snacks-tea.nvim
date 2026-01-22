@@ -347,7 +347,18 @@ function M.view(cb, item, opts)
     end
     
     item.dirty = false
+    
+    -- Call callback first with item (without comments)
     cb(cache_set(item), true)
+    
+    -- Fetch comments asynchronously and trigger another update
+    M.get_comments(function(comments)
+      if comments then
+        item.comments = comments
+        -- Trigger another callback with updated item
+        cb(cache_set(item), true)
+      end
+    end, item)
   end
 
   ---@param data? snacks.forgejo.PR
@@ -389,6 +400,73 @@ end
 ---@param item snacks.forgejo.api.View
 function M.get_cached(item)
   return not Item.is(item) and cache_get(item) or item
+end
+
+--- Fetches comments for a PR/issue using tea issues command
+---@param cb fun(comments?: snacks.forgejo.Comment[])
+---@param item snacks.forgejo.api.View
+function M.get_comments(cb, item)
+  local args = { "issues", tostring(item.number), "--comments" }
+  
+  M.cmd(function(proc, data)
+    if not data then
+      return cb(nil)
+    end
+    
+    -- Parse the text output from tea issues --comments
+    local comments = {}
+    local lines = vim.split(data, "\n")
+    local in_comments_section = false
+    local current_comment = nil
+    
+    for _, line in ipairs(lines) do
+      -- Look for the ## Comments section
+      if line:match("^%s*##%s+Comments%s*$") then
+        in_comments_section = true
+      elseif in_comments_section then
+        -- Match comment header: **@username** wrote on timestamp:
+        local username, timestamp = line:match("^%s*%*%*@([^%*]+)%*%*%s+wrote%s+on%s+(.-):%s*$")
+        if username and timestamp then
+          -- Save previous comment if exists
+          if current_comment then
+            table.insert(comments, current_comment)
+          end
+          -- Start new comment
+          current_comment = {
+            user = username,
+            created = timestamp,
+            body = "",
+          }
+        elseif current_comment then
+          -- Accumulate comment body lines
+          -- Skip empty lines at the start of body
+          if current_comment.body == "" and line:match("^%s*$") then
+            -- skip
+          else
+            if current_comment.body ~= "" then
+              current_comment.body = current_comment.body .. "\n"
+            end
+            current_comment.body = current_comment.body .. line
+          end
+        end
+      end
+    end
+    
+    -- Save last comment
+    if current_comment then
+      table.insert(comments, current_comment)
+    end
+    
+    -- Clean up trailing whitespace from comment bodies
+    for _, comment in ipairs(comments) do
+      comment.body = comment.body:gsub("%s+$", "")
+    end
+    
+    cb(#comments > 0 and comments or nil)
+  end, {
+    args = args,
+    repo = item.repo,
+  })
 end
 
 ---@param item snacks.picker.forgejo.Item

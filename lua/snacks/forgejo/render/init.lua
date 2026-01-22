@@ -50,17 +50,27 @@ function M.render(buf, item, opts)
 
   -- Comments
   if item.comments and type(item.comments) == "table" and #item.comments > 0 then
+    table.insert(lines, "")
     table.insert(lines, "---")
     table.insert(lines, "")
-    table.insert(lines, "## Comments")
+    table.insert(lines, "## 💬 Comments")
     table.insert(lines, "")
-    for _, comment in ipairs(item.comments) do
-      table.insert(lines, string.format("### %s %s commented:", config.icons.user, comment.user))
+    
+    for i, comment in ipairs(item.comments) do
+      -- Comment header with visual separator
+      table.insert(lines, string.format("### %s **@%s** · %s", config.icons.user, comment.user, comment.created))
       table.insert(lines, "")
+      
+      -- Comment body
       for line in comment.body:gmatch("[^\r\n]+") do
         table.insert(lines, line)
       end
-      table.insert(lines, "")
+      
+      -- Add spacing between comments (but not after the last one)
+      if i < #item.comments then
+        table.insert(lines, "")
+        table.insert(lines, "")
+      end
     end
   end
 
