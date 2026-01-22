@@ -181,6 +181,25 @@ function M.pr(opts)
   -- Ensure setup is called to register autocmds
   M.setup()
   
+  -- Check if we're in a git repository
+  local git_root = Snacks.git.get_root(vim.uv.cwd() or ".")
+  if not git_root then
+    Snacks.notify.error({
+      "Not in a git repository",
+      "",
+      "Forgejo PR picker requires:",
+      "  1. Being in a git repository",
+      "  2. Having a Forgejo/Gitea remote",
+      "  3. Tea CLI configured (run: tea login add)",
+    }, { title = "Forgejo PR Picker" })
+    return
+  end
+  
+  -- Check if tea is available (silent mode)
+  if not M.health_check({ silent = true }) then
+    return
+  end
+  
   -- If picker sources are registered, use them
   local has_registered = Snacks.picker 
     and Snacks.picker.config 
@@ -207,6 +226,132 @@ function M.pr(opts)
   picker_opts = vim.tbl_deep_extend("force", picker_opts, opts)
   
   return Snacks.picker(picker_opts)
+end
+
+---@class snacks.forgejo.CreatePROptions
+---@field title? string PR title
+---@field description? string PR description/body
+---@field base? string Target branch (defaults to repo's default branch)
+---@field head? string Source branch (defaults to current branch)
+---@field assignees? string Comma-separated list of usernames
+---@field labels? string Comma-separated list of labels
+---@field milestone? string Milestone to assign
+---@field deadline? string Deadline timestamp
+---@field repo? string Repository override
+---@field interactive? boolean Use interactive mode (default: true)
+
+---@param opts? snacks.forgejo.CreatePROptions
+function M.pr_create(opts)
+  opts = opts or {}
+  
+  -- Ensure setup is called
+  M.setup()
+  
+  -- Check if we're in a git repository
+  local git_root = Snacks.git.get_root(vim.uv.cwd() or ".")
+  if not git_root then
+    Snacks.notify.error({
+      "Not in a git repository",
+      "",
+      "Forgejo PR creation requires:",
+      "  1. Being in a git repository",
+      "  2. Having a Forgejo/Gitea remote",
+      "  3. Tea CLI configured (run: tea login add)",
+    }, { title = "Forgejo PR Create" })
+    return
+  end
+  
+  -- Check if tea is available (silent mode)
+  if not M.health_check({ silent = true }) then
+    return
+  end
+  
+  -- If interactive mode (default), prompt for title and description
+  if opts.interactive ~= false and not opts.title then
+    vim.ui.input({
+      prompt = "PR Title: ",
+      default = opts.title or "",
+    }, function(title)
+      if not title or title == "" then
+        Snacks.notify.warn("PR creation cancelled: no title provided", { title = "Forgejo PR Create" })
+        return
+      end
+      
+      opts.title = title
+      
+      -- Prompt for description
+      vim.ui.input({
+        prompt = "PR Description (optional): ",
+        default = opts.description or "",
+      }, function(description)
+        opts.description = description
+        
+        -- Proceed with creation
+        M._create_pr_internal(opts)
+      end)
+    end)
+  else
+    -- Non-interactive or title already provided
+    M._create_pr_internal(opts)
+  end
+end
+
+---@private
+---@param opts snacks.forgejo.CreatePROptions
+function M._create_pr_internal(opts)
+  Snacks.notify.info("Creating pull request...", { title = "Forgejo PR Create" })
+  
+  M.api.create(function(proc, pr_url)
+    if not pr_url then
+      local err = proc:err() or "Unknown error"
+      
+      -- Check for common errors
+      local helpful_msg = {}
+      if err:match("pull request already exists") then
+        helpful_msg = {
+          "Pull request already exists for these branches",
+          "",
+          "A PR between these branches already exists.",
+          "You can view it with :ForgejoPR",
+        }
+      else
+        helpful_msg = {
+          "Failed to create pull request",
+          "",
+          "Error: " .. err,
+        }
+      end
+      
+      Snacks.notify.error(helpful_msg, { title = "Forgejo PR Create" })
+      return
+    end
+    
+    -- Schedule UI operations to avoid fast event context issues
+    vim.schedule(function()
+      -- Success! Extract PR number from URL
+      local pr_number = pr_url:match("/pulls?/(%d+)")
+      local msg = {
+        "✓ Pull request created successfully",
+        ("  Title: %s"):format(opts.title or ""),
+        ("  URL: %s"):format(pr_url),
+      }
+      
+      if pr_number then
+        msg[1] = ("✓ Pull request #%s created successfully"):format(pr_number)
+      end
+      
+      Snacks.notify.info(msg, { title = "Forgejo PR Create" })
+      
+      -- Optionally open the PR in browser
+      vim.ui.select({ "Yes", "No" }, {
+        prompt = "Open PR in browser?",
+      }, function(choice)
+        if choice == "Yes" then
+          vim.fn.system({ "xdg-open", pr_url })
+        end
+      end)
+    end)
+  end, opts)
 end
 
 ---@private
@@ -287,6 +432,49 @@ function M.setup(ev)
     desc = "List Forgejo Pull Requests",
   })
   
+  vim.api.nvim_create_user_command("ForgejoPRCreate", function(opts)
+    local args = {}
+    if opts.args ~= "" then
+      -- Parse args like title="My PR" base=main
+      -- Support quoted strings for title and description
+      local remaining = opts.args
+      while remaining and remaining ~= "" do
+        -- Try to match key="value with spaces"
+        local key, quoted_value, rest = remaining:match('^%s*([^=]+)="([^"]*)"(.*)$')
+        if key and quoted_value then
+          args[key] = quoted_value
+          remaining = rest
+        else
+          -- Try to match key=value
+          key, quoted_value, rest = remaining:match("^%s*([^=]+)=([^%s]+)(.*)$")
+          if key and quoted_value then
+            -- Convert numbers
+            if tonumber(quoted_value) then
+              args[key] = tonumber(quoted_value)
+            else
+              args[key] = quoted_value
+            end
+            remaining = rest
+          else
+            break
+          end
+        end
+      end
+    end
+    
+    -- If no title provided, use interactive mode
+    if not args.title then
+      args.interactive = true
+    else
+      args.interactive = false
+    end
+    
+    M.pr_create(args)
+  end, {
+    nargs = "*",
+    desc = "Create a Forgejo Pull Request",
+  })
+  
   vim.api.nvim_create_user_command("ForgejoHealth", function()
     M.health_check({ verbose = true })
   end, {
@@ -296,10 +484,15 @@ function M.setup(ev)
 end
 
 --- Check if tea CLI is available
----@param opts? { verbose?: boolean }
+---@param opts? { verbose?: boolean, silent?: boolean }
 ---@return boolean
 function M.health_check(opts)
-  opts = opts or {}
+  -- Default to verbose unless explicitly silenced
+  if opts == nil then
+    opts = { verbose = true }
+  elseif opts.verbose == nil and not opts.silent then
+    opts.verbose = true
+  end
   local config = M.config()
   local tea_cmd = config.tea.cmd or "tea"
 
@@ -321,16 +514,16 @@ function M.health_check(opts)
   local version_clean = version:gsub("\27%[[0-9;]*m", ""):gsub("\n", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")
   
   if vim.v.shell_error == 0 then
-    local msg = {
-      ("✓ Tea CLI found: %s"):format(tea_cmd),
-      ("✓ Version: %s"):format(version_clean),
-      "",
-      "Configuration:",
-      ("  Remote: %s"):format(config.tea.remote or "origin"),
-      ("  Login: %s"):format(config.tea.login or "auto-detect"),
-    }
-    Snacks.notify.info(msg, { title = "Forgejo Health Check" })
     if opts.verbose then
+      local msg = {
+        ("✓ Tea CLI found: %s"):format(tea_cmd),
+        ("✓ Version: %s"):format(version_clean),
+        "",
+        "Configuration:",
+        ("  Remote: %s"):format(config.tea.remote or "origin"),
+        ("  Login: %s"):format(config.tea.login or "auto-detect"),
+      }
+      Snacks.notify.info(msg, { title = "Forgejo Health Check" })
       vim.print(table.concat(msg, "\n"))
     end
   else

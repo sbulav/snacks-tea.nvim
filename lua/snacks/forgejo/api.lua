@@ -30,7 +30,7 @@ local config = {
       "milestone",
       "labels",
     },
-    view = { "comments", "mergeable", "head-commit", "diff", "patch" },
+    view = { "comments", "mergeable", "head", "diff", "patch" },
     text = { "author", "title" },
     options = { "state", "limit", "repo", "remote", "login", "output" },
   },
@@ -140,10 +140,41 @@ function M.cmd(cb, opts)
         vim.schedule(function()
           if not proc.aborted then
             if opts.notify ~= false then
+              local stderr = proc:err() or ""
+              local helpful_msg = {}
+              
+              -- Provide helpful error messages
+              if stderr:match("not a gitea/forgejo repository") or stderr:match("No Gitea login") then
+                helpful_msg = {
+                  "This doesn't appear to be a Forgejo/Gitea repository",
+                  "",
+                  "Make sure you:",
+                  "  1. Have a Forgejo or Gitea remote configured",
+                  "  2. Have tea CLI configured: tea login add",
+                  "  3. Are in the correct repository",
+                }
+              elseif stderr:match("could not open a new TTY") then
+                -- This is just a warning, not a fatal error
+                -- If there's output, the command likely succeeded
+                if proc:out() and proc:out():match("%S") then
+                  -- Has output, treat as success
+                  return cb(proc, proc:out())
+                end
+                helpful_msg = {
+                  "Tea CLI TTY warning (usually harmless)",
+                  "",
+                  "If this persists, check:",
+                  "  1. Tea CLI is configured: tea login list",
+                  "  2. Repository has Forgejo/Gitea remote",
+                }
+              else
+                helpful_msg = { stderr }
+              end
+              
               Snacks.debug.cmd({
                 header = "Tea CLI Error",
                 cmd = { tea_cmd, unpack(args) },
-                footer = proc:err(),
+                footer = table.concat(helpful_msg, "\n"),
                 level = vim.log.levels.ERROR,
                 props = { input = opts.input },
               })
@@ -174,7 +205,39 @@ function M.fetch(cb, opts)
   end
   
   return M.cmd(function(proc, data)
-    cb(proc, data and proc:json() or nil)
+    if not data then
+      return cb(proc, nil)
+    end
+    
+    -- Try to parse JSON, with better error handling
+    local ok, result = pcall(function()
+      return proc:json()
+    end)
+    
+    if not ok then
+      -- JSON parsing failed, likely due to stderr contamination
+      -- Try to extract JSON from the output
+      local json_str = data:match("%[.+%]") or data:match("%{.+%}")
+      if json_str then
+        ok, result = pcall(vim.json.decode, json_str)
+      end
+      
+      if not ok then
+        -- Still failed, log the error but don't notify (it's cached on second try)
+        if opts.notify ~= false then
+          vim.schedule(function()
+            Snacks.notify.warn({
+              "Failed to parse tea CLI output as JSON",
+              "Command: tea " .. table.concat(args, " "),
+              "Output preview: " .. data:sub(1, 100),
+            }, { title = "Forgejo API" })
+          end)
+        end
+        return cb(proc, nil)
+      end
+    end
+    
+    cb(proc, result)
   end, {
     args = args,
     repo = opts.repo,
@@ -236,11 +299,34 @@ function M.view(cb, item, opts)
     return
   end
 
-  local args = { item.type, tostring(item.number) }
+  -- Tea CLI doesn't support viewing individual PRs with `tea pr <number>`
+  -- We need to use `tea pr ls` and filter by the specific PR
+  -- This is a limitation of the tea CLI
+  local args = { item.type, "ls" }
   local it ---@type snacks.forgejo.PR?
 
-  ---@param data? snacks.forgejo.PR|{}
+  ---@param data? snacks.forgejo.PR|snacks.forgejo.PR[]|{}
   local function handler(data)
+    -- tea pr ls returns an array, we need to find our specific PR
+    -- Check if it's an array by looking for numeric keys
+    local is_list = type(data) == "table" and data[1] ~= nil
+    if is_list then
+      -- Filter for the specific PR number
+      local target_number = tonumber(item.number) or item.number
+      for _, pr in ipairs(data) do
+        if pr.index == target_number or tonumber(pr.index) == target_number then
+          data = pr
+          is_list = false
+          break
+        end
+      end
+      -- If we didn't find it, data will still be the array
+      if is_list then
+        -- PR not found in the list
+        return cb()
+      end
+    end
+    
     it = data and vim.tbl_extend("force", it or {}, data or {}) or it
     if not it then
       return cb()
@@ -265,6 +351,10 @@ function M.view(cb, item, opts)
   end
 
   ---@param data? snacks.forgejo.PR
+  -- For tea pr ls, we need to add state=all and use limit to reduce overhead
+  -- We'll filter for our specific PR in the handler
+  vim.list_extend(args, { "--state", "all", "--limit", "100" })
+  
   local proc = M.fetch(function(_, data)
     handler(data)
   end, {
@@ -344,5 +434,70 @@ function M.current_pr()
 
   return nil
 end
+
+---@class snacks.forgejo.api.CreatePR
+---@field title? string PR title
+---@field description? string PR description/body
+---@field base? string Target branch (defaults to repo's default branch)
+---@field head? string Source branch (defaults to current branch)
+---@field assignees? string Comma-separated list of usernames
+---@field labels? string Comma-separated list of labels
+---@field milestone? string Milestone to assign
+---@field deadline? string Deadline timestamp
+---@field repo? string Repository override
+
+---@param cb fun(proc: snacks.spawn.Proc, pr_url?: string)
+---@param opts snacks.forgejo.api.CreatePR
+function M.create(cb, opts)
+  opts = opts or {}
+  local args = { "pr", "create" }
+  
+  -- Add title and description
+  if opts.title then
+    vim.list_extend(args, { "--title", opts.title })
+  end
+  if opts.description then
+    vim.list_extend(args, { "--description", opts.description })
+  end
+  
+  -- Add branch options
+  if opts.base then
+    vim.list_extend(args, { "--base", opts.base })
+  end
+  if opts.head then
+    vim.list_extend(args, { "--head", opts.head })
+  end
+  
+  -- Add optional metadata
+  if opts.assignees then
+    vim.list_extend(args, { "--assignees", opts.assignees })
+  end
+  if opts.labels then
+    vim.list_extend(args, { "--labels", opts.labels })
+  end
+  if opts.milestone then
+    vim.list_extend(args, { "--milestone", opts.milestone })
+  end
+  if opts.deadline then
+    vim.list_extend(args, { "--deadline", opts.deadline })
+  end
+  
+  -- Always enable maintainer edits
+  vim.list_extend(args, { "--allow-maintainer-edits" })
+  
+  -- tea pr create doesn't support --output json, it just prints the URL
+  return M.cmd(function(proc, data)
+    if not data then
+      return cb(proc, nil)
+    end
+    -- Extract PR URL from output (usually the last line)
+    local url = data:match("(https?://[^\n]+)")
+    cb(proc, url)
+  end, {
+    args = args,
+    repo = opts.repo,
+  })
+end
+M.create_sync = wrap_sync(M.create)
 
 return M
