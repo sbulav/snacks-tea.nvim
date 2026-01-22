@@ -323,13 +323,13 @@ function M.view(cb, item, opts)
       -- If we didn't find it, data will still be the array
       if is_list then
         -- PR not found in the list
-        return cb()
+        return cb(item, false)
       end
     end
     
     it = data and vim.tbl_extend("force", it or {}, data or {}) or it
     if not it then
-      return cb()
+      return cb(item, false)
     end
     
     -- If item is already an Item object, just update it
