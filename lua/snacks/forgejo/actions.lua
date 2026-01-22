@@ -1,0 +1,430 @@
+local Api = require("snacks.forgejo.api")
+local config = require("snacks.forgejo").config()
+
+local M = {}
+
+---@class snacks.forgejo.actions: {[string]:snacks.forgejo.Action}
+M.actions = setmetatable({}, {
+  __index = function(_, key)
+    if type(key) ~= "string" then
+      return nil
+    end
+    local action = M.cli_actions[key]
+    if action then
+      local ret = M.cli_action(action)
+      rawset(M.actions, key, ret)
+      return ret
+    end
+  end,
+})
+
+-- Action to show available actions (similar to gh plugin)
+M.actions.fg_actions = {
+  desc = "Show available actions",
+  action = function(item, ctx)
+    if ctx.action and ctx.action.cmd then
+      return Snacks.picker.actions.jump(ctx.picker, item, ctx.action)
+    end
+    local actions = M.get_actions(item, ctx)
+    actions.fg_actions = nil -- remove this action
+    Snacks.picker.pick("forgejo_actions", {
+      item = item,
+      layout = {
+        config = function(layout)
+          for _, box in ipairs(layout.layout) do
+            if box.win == "list" and not box.height then
+              box.height = math.max(math.min(vim.tbl_count(actions), vim.o.lines * 0.8 - 10), 3)
+            end
+          end
+        end,
+      },
+      confirm = function(picker, it, action)
+        if not it then
+          return
+        end
+        ctx.action = action
+        if ctx.picker then
+          ctx.picker.visual = ctx.picker.visual or picker.visual or nil
+          ctx.picker:focus()
+        end
+        it.action.action(item, ctx)
+        picker:close()
+      end,
+    })
+  end,
+}
+
+-- Open in buffer
+M.actions.fg_open = {
+  desc = "Open in buffer",
+  icon = " ",
+  priority = 100,
+  title = "Open PR #{number} in buffer",
+  action = function(item, ctx)
+    if ctx.picker then
+      return Snacks.picker.actions.jump(ctx.picker, item, ctx.action)
+    end
+  end,
+}
+
+-- Browse in web browser
+M.actions.fg_browse = {
+  desc = "Open in web browser",
+  title = "Open PR #{number} in web browser",
+  icon = " ",
+  action = function(_, ctx)
+    for _, item in ipairs(ctx.items) do
+      -- Open URL in browser
+      vim.ui.open(item.url)
+      Snacks.notify.info(("Opened PR #%s in web browser"):format(item.number))
+    end
+    if ctx.picker then
+      ctx.picker.list:set_selected() -- clear selection
+    end
+  end,
+}
+
+-- Yank URL to clipboard
+M.actions.fg_yank = {
+  desc = "Yank URL(s) to clipboard",
+  icon = " ",
+  action = function(_, ctx)
+    if vim.fn.mode():find("^[vV]") and ctx.picker then
+      ctx.picker.list:select()
+    end
+    ---@param it snacks.picker.forgejo.Item
+    local urls = vim.tbl_map(function(it)
+      return it.url
+    end, ctx.items)
+    if ctx.picker then
+      ctx.picker.list:set_selected() -- clear selection
+    end
+    local value = table.concat(urls, "\n")
+    vim.fn.setreg(vim.v.register or "+", value, "l")
+    Snacks.notify.info("Yanked " .. #urls .. " URL(s)")
+  end,
+}
+
+---@type table<string, snacks.forgejo.cli.Action>
+M.cli_actions = {
+  fg_checkout = {
+    cmd = "checkout",
+    icon = " ",
+    type = "pr",
+    confirm = "Are you sure you want to checkout PR #{number}?",
+    title = "Checkout PR #{number}",
+    success = "Checked out PR #{number}",
+  },
+  fg_close = {
+    cmd = "close",
+    icon = config.icons.crossmark,
+    title = "Close PR #{number}",
+    success = "Closed PR #{number}",
+    enabled = function(item)
+      return item.state == "open"
+    end,
+  },
+  fg_reopen = {
+    cmd = "reopen",
+    icon = " ",
+    title = "Reopen PR #{number}",
+    success = "Reopened PR #{number}",
+    enabled = function(item)
+      return item.state == "closed"
+    end,
+  },
+  fg_merge = {
+    cmd = "merge",
+    icon = config.icons.pr.merged,
+    type = "pr",
+    success = "Merged PR #{number}",
+    title = "Merge PR #{number}",
+    confirm = "Are you sure you want to merge PR #{number}?",
+    enabled = function(item)
+      return item.state == "open"
+    end,
+  },
+  fg_approve = {
+    cmd = "approve",
+    icon = config.icons.checkmark,
+    type = "pr",
+    title = "Approve PR #{number}",
+    success = "Approved PR #{number}",
+    enabled = function(item)
+      return item.state == "open"
+    end,
+  },
+  fg_reject = {
+    cmd = "reject",
+    type = "pr",
+    icon = " ",
+    title = "Request changes on PR #{number}",
+    success = "Requested changes on PR #{number}",
+    enabled = function(item)
+      return item.state == "open"
+    end,
+  },
+  fg_review = {
+    cmd = "review",
+    type = "pr",
+    icon = " ",
+    title = "Review PR #{number}",
+    success = "Reviewed PR #{number}",
+    enabled = function(item)
+      return item.state == "open"
+    end,
+  },
+  fg_comment = {
+    cmd = "comment",
+    icon = " ",
+    title = "Comment on PR #{number}",
+    success = "Commented on PR #{number}",
+    edit = "body-file",
+  },
+}
+
+---@param opts snacks.forgejo.cli.Action
+function M.cli_action(opts)
+  ---@type snacks.forgejo.Action
+  return setmetatable({
+    desc = opts.desc or opts.title,
+    ---@type snacks.forgejo.action.fn
+    action = function(item, ctx)
+      M.run(item, opts, ctx)
+    end,
+  }, { __index = opts })
+end
+
+---@param str string
+---@param ... table<string, any>
+function M.tpl(str, ...)
+  local data = { ... }
+  return Snacks.picker.util.tpl(
+    str,
+    setmetatable({}, {
+      __index = function(_, key)
+        for _, d in ipairs(data) do
+          if d[key] ~= nil then
+            local ret = d[key]
+            return ret == "pr" and "PR" or ret
+          end
+        end
+      end,
+    })
+  )
+end
+
+---@param item snacks.picker.forgejo.Item
+---@param ctx snacks.forgejo.action.ctx
+function M.get_actions(item, ctx)
+  local ret = {} ---@type table<string, snacks.forgejo.Action>
+  local keys = vim.tbl_keys(M.actions) ---@type string[]
+  vim.list_extend(keys, vim.tbl_keys(M.cli_actions))
+  for _, name in ipairs(keys) do
+    local action = M.actions[name]
+    local enabled = action.type == nil or action.type == item.type
+    enabled = enabled and (action.enabled == nil or action.enabled(item, ctx))
+    if enabled then
+      local a = setmetatable({}, { __index = action })
+      local ca = M.cli_actions[name] or {}
+      a.desc = a.title and M.tpl(a.title or name, item, ca) or a.desc
+      a.name = name
+      ret[name] = a
+    end
+  end
+  return ret
+end
+
+--- Executes a tea cli action
+---@param item snacks.picker.forgejo.Item
+---@param action snacks.forgejo.cli.Action
+---@param ctx snacks.forgejo.action.ctx
+function M.run(item, action, ctx)
+  local args = action.cmd and { item.type, action.cmd, tostring(item.number) } or {}
+  vim.list_extend(args, action.args or {})
+  
+  ---@type snacks.forgejo.cli.Action.ctx
+  local cli_ctx = {
+    item = item,
+    args = args,
+    opts = action,
+    picker = ctx.picker,
+    main = ctx.main,
+  }
+  
+  if action.edit then
+    return M.edit(cli_ctx)
+  else
+    return M._run(cli_ctx)
+  end
+end
+
+--- Executes the action CLI command
+---@param ctx snacks.forgejo.cli.Action.ctx
+function M._run(ctx, force)
+  if not force and ctx.opts.confirm then
+    Snacks.picker.util.confirm(M.tpl(ctx.opts.confirm, ctx.item, ctx.opts), function()
+      M._run(ctx, true)
+    end)
+    return
+  end
+
+  local spinner = require("snacks.picker.util.spinner").loading()
+  local cb = function()
+    vim.schedule(function()
+      spinner:stop()
+
+      -- success message
+      if ctx.opts.success then
+        Snacks.notify.info(M.tpl(ctx.opts.success, ctx.item, ctx.opts))
+      end
+
+      -- refresh item and picker
+      if ctx.opts.refresh ~= false then
+        vim.schedule(function()
+          Api.refresh(ctx.item)
+          if ctx.picker and not ctx.picker.closed then
+            ctx.picker:refresh()
+            vim.cmd.startinsert()
+          end
+        end)
+        if ctx.picker and not ctx.picker.closed then
+          ctx.picker:focus()
+        end
+      end
+
+      -- clean up scratch buffer
+      if ctx.scratch then
+        local buf = assert(ctx.scratch.buf)
+        local fname = vim.api.nvim_buf_get_name(buf)
+        ctx.scratch:on("WinClosed", function()
+          vim.schedule(function()
+            pcall(vim.api.nvim_buf_delete, buf, { force = true })
+            os.remove(fname)
+            os.remove(fname .. ".meta")
+          end)
+        end, { buf = true })
+        ctx.scratch:close()
+      end
+    end)
+  end
+
+  Api.cmd(cb, {
+    input = ctx.input,
+    args = ctx.args,
+    repo = ctx.item.repo or ctx.opts.repo,
+    on_error = function()
+      spinner:stop()
+    end,
+  })
+end
+
+--- Edit action body in scratch buffer
+---@param ctx snacks.forgejo.cli.Action.ctx
+function M.edit(ctx)
+  ---@param s? string
+  local function tpl(s)
+    return s and M.tpl(s, ctx.item, ctx.opts) or nil
+  end
+
+  local template = ctx.opts.template or ""
+  local preview = ctx.picker and ctx.picker.preview and ctx.picker.preview.win:valid() and ctx.picker.preview.win or nil
+  local actions = preview and preview.opts.actions or {}
+  local parent = ctx.main or preview and preview.win or vim.api.nvim_get_current_win()
+
+  local height = config.scratch.height or 15
+  local opts = Snacks.win.resolve({
+    relative = "win",
+    width = 0,
+    backdrop = false,
+    height = height,
+    actions = {
+      cycle_win = actions.cycle_win,
+      preview_scroll_up = actions.preview_scroll_up,
+      preview_scroll_down = actions.preview_scroll_down,
+    },
+    win = parent,
+    wo = { winhighlight = "NormalFloat:Normal,FloatTitle:SnacksForgejoScratchTitle,FloatBorder:SnacksForgejoScratchBorder" },
+    border = "top_bottom",
+    row = function(win)
+      local border = win:border_size()
+      return win:parent_size().height - height - border.top - border.bottom
+    end,
+    on_win = function(win)
+      if vim.api.nvim_win_is_valid(parent) then
+        local parent_row = vim.api.nvim_win_call(parent, vim.fn.winline) ---@type number
+        parent_row = parent_row + vim.wo[parent].scrolloff
+        local row = vim.api.nvim_win_get_height(parent) - win:size().height
+        if parent_row > row then
+          vim.api.nvim_win_call(parent, function()
+            vim.cmd(("normal! %d%s"):format(parent_row - row, Snacks.util.keycode("<C-e>")))
+          end)
+        end
+      end
+      vim.g.snacks_picker_cycle_win = win.win
+      vim.schedule(function()
+        vim.cmd.startinsert()
+      end)
+    end,
+    footer_keys = { "<c-s>", "R" },
+    keys = {
+      submit = {
+        "<c-s>",
+        function(win)
+          ctx.scratch = win
+          M.submit(ctx)
+        end,
+        desc = "Submit",
+        mode = { "n", "i" },
+      },
+    },
+  }, preview and {
+    keys = {
+      ["<a-w>"] = { "cycle_win", mode = { "i", "n" } },
+      ["<c-b>"] = { "preview_scroll_up", mode = { "i", "n" } },
+      ["<c-f>"] = { "preview_scroll_down", mode = { "i", "n" } },
+    },
+  } or nil)
+  
+  Snacks.scratch({
+    ft = "markdown",
+    icon = config.icons.logo,
+    name = tpl(ctx.opts.title or "{cmd} PR #{number}"),
+    template = tpl(template),
+    filekey = {
+      cwd = false,
+      branch = false,
+      count = false,
+      id = tpl("{repo}/pr/{cmd}"),
+    },
+    win = opts,
+  })
+end
+
+--- Submit edited body
+---@param ctx snacks.forgejo.cli.Action.ctx
+function M.submit(ctx)
+  local edit = assert(ctx.opts.edit, "Submit called for action that doesn't need edit?")
+  local win = assert(ctx.scratch, "Submit not called from scratch window?")
+  ctx = setmetatable({
+    args = vim.deepcopy(ctx.args),
+  }, { __index = ctx })
+  
+  local body = win:text()
+
+  if body:find("%S") then
+    if edit == "body-file" then
+      ctx.input = body
+      vim.list_extend(ctx.args, { "--body-file", "-" })
+    else
+      vim.list_extend(ctx.args, { "--" .. edit, body })
+    end
+  end
+
+  vim.cmd.stopinsert()
+  vim.schedule(function()
+    M._run(ctx)
+  end)
+end
+
+return M
