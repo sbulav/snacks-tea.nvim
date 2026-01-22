@@ -114,21 +114,25 @@ function M.preview(ctx)
   return Snacks.picker.preview.file(ctx)
 end
 
----@param opts { item: snacks.picker.forgejo.Item }
+---@param opts { item: snacks.picker.forgejo.Item, ctx?: table, forgejo_actions?: table }
 ---@type snacks.picker.finder
 function M.actions(opts, ctx)
   local item = opts.item
-  local actions = Actions.get_actions(item, ctx)
+  -- Use pre-computed actions from forgejo_actions field (not opts.actions which has picker actions)
+  local actions = opts.forgejo_actions or Actions.get_actions(item, opts.ctx or ctx)
   
   return function(cb)
     for name, action in pairs(actions) do
-      cb({
-        text = action.desc or name,
-        name = name,
-        action = action,
-        icon = action.icon,
-        priority = action.priority or 0,
-      })
+      -- Skip if action is a function (picker built-in action)
+      if type(action) == "table" then
+        cb({
+          text = action.desc or name,
+          name = name,
+          action = action,
+          icon = action.icon,
+          priority = action.priority or 0,
+        })
+      end
     end
   end
 end

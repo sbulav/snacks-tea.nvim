@@ -27,11 +27,30 @@ M.actions.fg_actions = {
     end
     local actions = M.get_actions(item, ctx)
     actions.fg_actions = nil -- remove this action
-    Snacks.picker.pick("forgejo_actions", {
+    
+    -- Use direct config instead of string lookup
+    local source = require("snacks.picker.source.forgejo")
+    Snacks.picker.pick({
+      title = "  Forgejo Actions",
+      finder = source.actions,
+      format = source.actions_format,
+      sort = { fields = { "priority:desc", "idx" } },
       item = item,
+      ctx = ctx,
+      forgejo_actions = actions,  -- Use custom field name to avoid conflict with picker's actions
+      win = {
+        preview = {
+          width = 0,  -- Hide preview by setting width to 0
+        },
+      },
       layout = {
         config = function(layout)
+          -- Hide preview window
           for _, box in ipairs(layout.layout) do
+            if box.win == "preview" then
+              box.width = 0
+              box.height = 0
+            end
             if box.win == "list" and not box.height then
               box.height = math.max(math.min(vim.tbl_count(actions), vim.o.lines * 0.8 - 10), 3)
             end
