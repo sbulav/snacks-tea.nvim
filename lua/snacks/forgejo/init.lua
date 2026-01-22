@@ -68,7 +68,7 @@ local defaults = {
   },
 
   scratch = {
-    height = 15, -- height of scratch window
+    height = 20, -- height of scratch window (increased for PR creation)
   },
 
   -- stylua: ignore
@@ -233,12 +233,6 @@ end
 ---@field description? string PR description/body
 ---@field base? string Target branch (defaults to repo's default branch)
 ---@field head? string Source branch (defaults to current branch)
----@field assignees? string Comma-separated list of usernames
----@field labels? string Comma-separated list of labels
----@field milestone? string Milestone to assign
----@field deadline? string Deadline timestamp
----@field repo? string Repository override
----@field interactive? boolean Use interactive mode (default: true)
 
 ---@param opts? snacks.forgejo.CreatePROptions
 function M.pr_create(opts)
@@ -266,92 +260,35 @@ function M.pr_create(opts)
     return
   end
   
-  -- If interactive mode (default), prompt for title and description
-  if opts.interactive ~= false and not opts.title then
-    vim.ui.input({
-      prompt = "PR Title: ",
-      default = opts.title or "",
-    }, function(title)
-      if not title or title == "" then
-        Snacks.notify.warn("PR creation cancelled: no title provided", { title = "Forgejo PR Create" })
-        return
-      end
-      
-      opts.title = title
-      
-      -- Prompt for description
-      vim.ui.input({
-        prompt = "PR Description (optional): ",
-        default = opts.description or "",
-      }, function(description)
-        opts.description = description
-        
-        -- Proceed with creation
-        M._create_pr_internal(opts)
-      end)
-    end)
-  else
-    -- Non-interactive or title already provided
-    M._create_pr_internal(opts)
-  end
-end
-
----@private
----@param opts snacks.forgejo.CreatePROptions
-function M._create_pr_internal(opts)
-  Snacks.notify.info("Creating pull request...", { title = "Forgejo PR Create" })
+  -- Get git information
+  local git = require("snacks.forgejo.git")
+  local current_branch = git.get_current_branch()
+  local default_branch = git.get_default_branch() or "main"
   
-  M.api.create(function(proc, pr_url)
-    if not pr_url then
-      local err = proc:err() or "Unknown error"
-      
-      -- Check for common errors
-      local helpful_msg = {}
-      if err:match("pull request already exists") then
-        helpful_msg = {
-          "Pull request already exists for these branches",
-          "",
-          "A PR between these branches already exists.",
-          "You can view it with :ForgejoPR",
-        }
-      else
-        helpful_msg = {
-          "Failed to create pull request",
-          "",
-          "Error: " .. err,
-        }
-      end
-      
-      Snacks.notify.error(helpful_msg, { title = "Forgejo PR Create" })
-      return
-    end
-    
-    -- Schedule UI operations to avoid fast event context issues
-    vim.schedule(function()
-      -- Success! Extract PR number from URL
-      local pr_number = pr_url:match("/pulls?/(%d+)")
-      local msg = {
-        "✓ Pull request created successfully",
-        ("  Title: %s"):format(opts.title or ""),
-        ("  URL: %s"):format(pr_url),
-      }
-      
-      if pr_number then
-        msg[1] = ("✓ Pull request #%s created successfully"):format(pr_number)
-      end
-      
-      Snacks.notify.info(msg, { title = "Forgejo PR Create" })
-      
-      -- Optionally open the PR in browser
-      vim.ui.select({ "Yes", "No" }, {
-        prompt = "Open PR in browser?",
-      }, function(choice)
-        if choice == "Yes" then
-          vim.fn.system({ "xdg-open", pr_url })
-        end
-      end)
-    end)
-  end, opts)
+  if not current_branch then
+    Snacks.notify.error("Could not determine current branch", { title = "Forgejo PR Create" })
+    return
+  end
+  
+  -- Create action context with branch info
+  local actions = require("snacks.forgejo.actions")
+  local action = actions.create_pr_action()
+  
+  -- Set up item with branch defaults
+  local item = {
+    title = opts.title or current_branch,
+    base = opts.base or default_branch,
+  }
+  
+  -- Context for running the action
+  local ctx = {
+    item = item,
+    args = { "pr", "create", "--allow-maintainer-edits" },
+    opts = action,
+  }
+  
+  -- Open scratch buffer for editing
+  actions.edit(ctx)
 end
 
 ---@private
@@ -435,40 +372,14 @@ function M.setup(ev)
   vim.api.nvim_create_user_command("ForgejoPRCreate", function(opts)
     local args = {}
     if opts.args ~= "" then
-      -- Parse args like title="My PR" base=main
-      -- Support quoted strings for title and description
-      local remaining = opts.args
-      while remaining and remaining ~= "" do
-        -- Try to match key="value with spaces"
-        local key, quoted_value, rest = remaining:match('^%s*([^=]+)="([^"]*)"(.*)$')
-        if key and quoted_value then
-          args[key] = quoted_value
-          remaining = rest
-        else
-          -- Try to match key=value
-          key, quoted_value, rest = remaining:match("^%s*([^=]+)=([^%s]+)(.*)$")
-          if key and quoted_value then
-            -- Convert numbers
-            if tonumber(quoted_value) then
-              args[key] = tonumber(quoted_value)
-            else
-              args[key] = quoted_value
-            end
-            remaining = rest
-          else
-            break
-          end
+      -- Parse simple args like base=develop
+      for pair in opts.args:gmatch("[^%s]+") do
+        local key, value = pair:match("([^=]+)=([^=]+)")
+        if key and value then
+          args[key] = value
         end
       end
     end
-    
-    -- If no title provided, use interactive mode
-    if not args.title then
-      args.interactive = true
-    else
-      args.interactive = false
-    end
-    
     M.pr_create(args)
   end, {
     nargs = "*",

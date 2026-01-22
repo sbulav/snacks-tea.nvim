@@ -270,17 +270,40 @@ function M._run(ctx, force)
   end
 
   local spinner = require("snacks.picker.util.spinner").loading()
-  local cb = function()
+  local cb = function(proc, data)
     vim.schedule(function()
       spinner:stop()
 
-      -- success message
-      if ctx.opts.success then
-        Snacks.notify.info(M.tpl(ctx.opts.success, ctx.item, ctx.opts))
+      if not data then
+        -- Error already handled by Api.cmd's error handler
+        return
+      end
+
+      -- For PR creation, extract URL from output
+      if ctx.opts.cmd == "create" then
+        local pr_url = data:match("(https?://[^\n]+)")
+        if pr_url then
+          local pr_number = pr_url:match("/pulls?/(%d+)")
+          local msg = ctx.opts.success or "Created pull request"
+          if pr_number then
+            msg = ("✓ Pull request #%s created"):format(pr_number)
+          end
+          Snacks.notify.info({
+            msg,
+            ("URL: %s"):format(pr_url),
+          }, { title = "Forgejo PR" })
+        else
+          Snacks.notify.info(ctx.opts.success or "Success", { title = "Forgejo Action" })
+        end
+      else
+        -- success message for other actions
+        if ctx.opts.success then
+          Snacks.notify.info(M.tpl(ctx.opts.success, ctx.item, ctx.opts))
+        end
       end
 
       -- refresh item and picker
-      if ctx.opts.refresh ~= false then
+      if ctx.opts.refresh ~= false and ctx.item and ctx.item.number then
         vim.schedule(function()
           Api.refresh(ctx.item)
           if ctx.picker and not ctx.picker.closed then
@@ -312,7 +335,7 @@ function M._run(ctx, force)
   Api.cmd(cb, {
     input = ctx.input,
     args = ctx.args,
-    repo = ctx.item.repo or ctx.opts.repo,
+    repo = ctx.item and ctx.item.repo or ctx.opts.repo,
     on_error = function()
       spinner:stop()
     end,
@@ -328,6 +351,18 @@ function M.edit(ctx)
   end
 
   local template = ctx.opts.template or ""
+  
+  -- Add frontmatter if fields are defined
+  if not vim.tbl_isempty(ctx.opts.fields or {}) then
+    local fm = { "---" }
+    for _, f in ipairs(ctx.opts.fields) do
+      local value = ctx.item and ctx.item[f.prop] or ""
+      fm[#fm + 1] = ("%s: %s"):format(f.name, value)
+    end
+    fm[#fm + 1] = "---\n\n"
+    template = table.concat(fm, "\n") .. template
+  end
+  
   local preview = ctx.picker and ctx.picker.preview and ctx.picker.preview.win:valid() and ctx.picker.preview.win or nil
   local actions = preview and preview.opts.actions or {}
   local parent = ctx.main or preview and preview.win or vim.api.nvim_get_current_win()
@@ -401,6 +436,49 @@ function M.edit(ctx)
   })
 end
 
+--- Parses frontmatter fields from body and extracts them
+---@param body string
+---@param ctx snacks.forgejo.cli.Action.ctx
+---@return string? body The body without frontmatter, or nil if parsing failed
+function M.parse(body, ctx)
+  if not ctx.opts.fields then
+    return body
+  end
+
+  local fields = {} ---@type table<string, table>
+  for _, f in ipairs(ctx.opts.fields) do
+    fields[f.name] = f
+  end
+
+  local values = {} ---@type table<string, string>
+  --- parse markdown frontmatter for fields
+  body = body:gsub("^(%-%-%-\n.-\n%-%-%-\n%s*)", function(fm)
+    fm = fm:gsub("^%-%-%-\n", ""):gsub("\n%-%-%-\n%s*$", "") --[[@as string]]
+    local lines = vim.split(fm, "\n")
+    for _, line in ipairs(lines) do
+      local field, value = line:match("^(%w+):%s*(.-)%s*$")
+      if field and fields[field] then
+        values[field] = value
+      elseif field then
+        Snacks.notify.warn(("Unknown field `%s` in frontmatter"):format(field))
+      end
+    end
+    return ""
+  end) --[[@as string]]
+
+  for _, field in ipairs(ctx.opts.fields) do
+    local value = values[field.name]
+    if value and value ~= "" then
+      vim.list_extend(ctx.args, { "--" .. field.arg, value })
+    else
+      Snacks.notify.error(("Missing required field `%s` in frontmatter"):format(field.name))
+      return nil
+    end
+  end
+  
+  return body
+end
+
 --- Submit edited body
 ---@param ctx snacks.forgejo.cli.Action.ctx
 function M.submit(ctx)
@@ -412,10 +490,21 @@ function M.submit(ctx)
   
   local body = win:text()
 
+  -- Parse frontmatter if fields are defined
+  if ctx.opts.fields then
+    body = M.parse(body, ctx)
+    if not body then
+      return -- error already shown in M.parse
+    end
+  end
+
+  -- Clean up empty lines at start/end
+  body = body:gsub("^%s+", ""):gsub("%s+$", "")
+
   if body:find("%S") then
     if edit == "body-file" then
-      ctx.input = body
-      vim.list_extend(ctx.args, { "--body-file", "-" })
+      -- Tea CLI uses --description, not --body-file
+      vim.list_extend(ctx.args, { "--description", body })
     else
       vim.list_extend(ctx.args, { "--" .. edit, body })
     end
@@ -425,6 +514,25 @@ function M.submit(ctx)
   vim.schedule(function()
     M._run(ctx)
   end)
+end
+
+--- Creates a PR creation action with proper context
+---@param item table Item data with branch info
+---@return snacks.forgejo.cli.Action
+function M.create_pr_action(item)
+  return {
+    cmd = "create",
+    icon = " ",
+    title = "Create Pull Request",
+    success = "Created pull request",
+    edit = "body-file",
+    fields = {
+      { arg = "title", prop = "title", name = "Title" },
+      { arg = "base", prop = "base", name = "Base" },
+    },
+    template = "",
+    args = { "--allow-maintainer-edits" },
+  }
 end
 
 return M
