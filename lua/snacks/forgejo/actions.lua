@@ -73,6 +73,28 @@ M.actions.fg_actions = {
   end,
 }
 
+-- View PR diff
+M.actions.fg_diff = {
+  desc = "View PR diff",
+  icon = " ",
+  priority = 100,
+  type = "pr",
+  title = "View diff for PR #{number}",
+  action = function(item, ctx)
+    if not item then
+      return
+    end
+    -- Get the config and call picker directly
+    local config = require("snacks.picker.config.forgejo")
+    local picker_config = vim.tbl_deep_extend("force", config.forgejo_diff or {}, {
+      show_delay = 0,
+      repo = item.repo,
+      pr = item.number,
+    })
+    Snacks.picker(picker_config)
+  end,
+}
+
 -- Open in buffer
 M.actions.fg_open = {
   desc = "Open in buffer",

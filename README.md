@@ -90,6 +90,7 @@ require("snacks").setup({
     -- Buffer keymaps
     keys = {
       select   = { "<cr>", "fg_actions" , desc = "Select Action" },
+      diff     = { "d"   , "fg_diff"    , desc = "View Diff" },
       checkout = { "c"   , "fg_checkout", desc = "Checkout PR" },
       approve  = { "A"   , "fg_approve" , desc = "Approve PR" },
       comment  = { "a"   , "fg_comment" , desc = "Add Comment" },
@@ -124,6 +125,7 @@ require("snacks").setup({
 When viewing the PR list, you can:
 
 - `<CR>` - Show available actions
+- `d` - View PR diff in separate viewer
 - `c` - Checkout PR locally
 - `A` - Approve PR (shift+a)
 - `a` - Add comment
@@ -135,6 +137,7 @@ When viewing the PR list, you can:
 
 Once viewing a PR, available actions include:
 
+- **View Diff** (`d`) - Open a file-by-file diff viewer with navigation
 - **Checkout** (`c`) - `tea pr checkout <number>`
 - **Approve** (`A`) - `tea pr approve <number>`
 - **Request Changes** - `tea pr reject <number>`
@@ -142,6 +145,17 @@ Once viewing a PR, available actions include:
 - **Merge** - `tea pr merge <number>`
 - **Close** (`x`) - `tea pr close <number>`
 - **Reopen** (`o`) - `tea pr reopen <number>`
+
+### Diff Viewer
+
+The diff viewer (`d` key) provides an enhanced view of PR changes:
+
+- 📁 **File-by-file navigation** - Browse through changed files
+- 🔍 **Syntax-highlighted preview** - Full diff preview with syntax highlighting
+- ⚡ **Quick actions** - Add comments or perform actions directly from diff view
+- 🎯 **Jump to file** - Navigate to specific files and line numbers
+
+The diff viewer mirrors the excellent UX of `snacks.gh` while working with Forgejo/Gitea.
 
 ## Architecture
 
@@ -166,6 +180,7 @@ lua/snacks/forgejo/
 | CLI Tool | `gh` (official GitHub CLI) | `tea` (Gitea/Forgejo CLI) |
 | List PRs | ✅ | ✅ |
 | View PR | ✅ | ✅ |
+| View Diff | ✅ | ✅ |
 | Checkout PR | ✅ | ✅ |
 | Create PR | ✅ | 🚧 (Planned) |
 | Review PR | ✅ | ✅ |
@@ -207,9 +222,9 @@ git remote get-url origin
 - [x] Checkout PRs
 - [x] Review PRs (approve/reject/comment)
 - [x] Merge PRs
+- [x] Diff viewer integration
 - [ ] Create PRs from scratch buffer
 - [ ] Inline code comments
-- [ ] Diff viewer integration
 - [ ] PR templates support
 - [ ] Multi-instance support
 

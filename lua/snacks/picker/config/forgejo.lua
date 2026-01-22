@@ -40,4 +40,23 @@ M.forgejo_actions = {
   sort = { fields = { "priority:desc", "idx" } },
 }
 
+---@class snacks.picker.forgejo.diff.Config: snacks.picker.Config
+---@field pr number PR number
+---@field repo? string Forgejo repository (owner/repo). Defaults to current git repo
+M.forgejo_diff = {
+  title = "  Pull Request Diff",
+  group = true,
+  finder = "forgejo_diff",
+  format = "git_status",
+  preview = "forgejo_preview_diff",
+  win = {
+    preview = {
+      keys = {
+        ["a"] = { "fg_comment", mode = { "n", "x" } },
+        ["<cr>"] = { "fg_actions", mode = { "n", "x" } },
+      },
+    },
+  },
+}
+
 return M

@@ -31,6 +31,7 @@ local defaults = {
   -- stylua: ignore
   keys = {
     select   = { "<cr>", "fg_actions" , desc = "Select Action" },
+    diff     = { "d"   , "fg_diff"    , desc = "View Diff" },
     checkout = { "c"   , "fg_checkout", desc = "Checkout PR" },
     approve  = { "A"   , "fg_approve" , desc = "Approve PR" },
     comment  = { "a"   , "fg_comment" , desc = "Add Comment" },
@@ -324,11 +325,13 @@ function M.setup(ev)
         -- Register preview
         Snacks.picker.preview = Snacks.picker.preview or {}
         Snacks.picker.preview.forgejo_preview = forgejo_source.preview
+        Snacks.picker.preview.forgejo_preview_diff = forgejo_source.preview_diff
         
         -- Register finders
         Snacks.picker.finder = Snacks.picker.finder or {}
         Snacks.picker.finder.forgejo_pr = forgejo_source.pr
         Snacks.picker.finder.forgejo_actions = forgejo_source.actions
+        Snacks.picker.finder.forgejo_diff = forgejo_source.diff
         
         -- Register actions
         local actions_ok, actions_mod = pcall(require, "snacks.forgejo.actions")

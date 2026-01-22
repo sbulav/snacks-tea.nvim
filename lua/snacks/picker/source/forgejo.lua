@@ -149,4 +149,83 @@ function M.actions_format(item)
   return ret
 end
 
+---@param opts snacks.picker.forgejo.diff.Config
+---@type snacks.picker.finder
+function M.diff(opts, ctx)
+  opts = opts or {}
+  if not opts.pr then
+    Snacks.notify.error("snacks.picker.forgejo.diff: `opts.pr` is required")
+    return {}
+  end
+  
+  local cwd = ctx:git_root()
+  local Diff = require("snacks.picker.source.diff")
+  
+  ---@async
+  return function(cb)
+    -- Fetch PR item to get branch and commit information
+    local item = Api.get({ type = "pr", repo = opts.repo, number = opts.pr }, { fields = { "base", "head" }, force = true })
+    
+    if not item then
+      Snacks.notify.error("Failed to fetch PR #" .. opts.pr)
+      return
+    end
+    
+    -- Check if we have the necessary branch information
+    if not item.base or not item.head then
+      Snacks.notify.error("PR #" .. opts.pr .. " missing branch information")
+      return
+    end
+    
+    local config = require("snacks.forgejo").config()
+    local remote = config.tea.remote or "origin"
+    
+    -- Fetch the branches from remote
+    -- This ensures we have the latest commits
+    local Spawn = require("snacks.util.spawn")
+    Spawn.new({
+      cmd = "git",
+      args = { "fetch", remote, item.base .. ":" .. item.base, item.head .. ":" .. item.head },
+      cwd = cwd,
+      timeout = 15000,
+    }):wait()
+    
+    -- Use git diff with remote branch refs
+    -- Use triple-dot syntax to show changes on head since it branched from base
+    local base_ref = remote .. "/" .. item.base
+    local head_ref = remote .. "/" .. item.head
+    local args = { "diff", base_ref .. "..." .. head_ref }
+    
+    -- Parse diff using the built-in diff parser with git command
+    Diff.diff(
+      ctx:opts({
+        cmd = "git",
+        args = args,
+        cwd = cwd,
+        group = true,  -- Group hunks by file
+      }),
+      ctx
+    )(function(it)
+      it.forgejo_item = item
+      cb(it)
+    end)
+  end
+end
+
+---@param ctx snacks.picker.preview.ctx
+function M.preview_diff(ctx)
+  -- Use the built-in diff preview
+  Snacks.picker.preview.diff(ctx)
+  
+  -- Store forgejo item data for actions
+  local item = ctx.item.forgejo_item ---@type snacks.picker.forgejo.Item?
+  if item then
+    vim.b[ctx.buf].snacks_forgejo = {
+      repo = item.repo,
+      type = item.type,
+      number = item.number,
+    }
+  end
+end
+
 return M
