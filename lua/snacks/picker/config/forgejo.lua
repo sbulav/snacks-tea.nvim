@@ -32,4 +32,12 @@ M.forgejo_pr = {
   },
 }
 
+---@class snacks.picker.forgejo.actions.Config: snacks.picker.Config
+M.forgejo_actions = {
+  title = "  Forgejo Actions",
+  finder = "forgejo_actions",
+  format = "forgejo_actions_format",
+  sort = { fields = { "priority:desc", "idx" } },
+}
+
 return M

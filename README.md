@@ -91,6 +91,7 @@ require("snacks").setup({
     keys = {
       select   = { "<cr>", "fg_actions" , desc = "Select Action" },
       checkout = { "c"   , "fg_checkout", desc = "Checkout PR" },
+      approve  = { "A"   , "fg_approve" , desc = "Approve PR" },
       comment  = { "a"   , "fg_comment" , desc = "Add Comment" },
       close    = { "x"   , "fg_close"   , desc = "Close" },
       reopen   = { "o"   , "fg_reopen"  , desc = "Reopen" },
@@ -124,19 +125,23 @@ When viewing the PR list, you can:
 
 - `<CR>` - Show available actions
 - `c` - Checkout PR locally
-- `o` - Open PR in web browser
+- `A` - Approve PR (shift+a)
+- `a` - Add comment
+- `x` - Close PR
+- `o` - Reopen PR
 - `y` - Yank PR URL to clipboard
 
 ### PR Actions
 
 Once viewing a PR, available actions include:
 
-- **Checkout** - `tea pr checkout <number>`
-- **Approve** - `tea pr approve <number>`
+- **Checkout** (`c`) - `tea pr checkout <number>`
+- **Approve** (`A`) - `tea pr approve <number>`
 - **Request Changes** - `tea pr reject <number>`
-- **Comment** - `tea pr comment <number>`
+- **Comment** (`a`) - `tea pr comment <number>`
 - **Merge** - `tea pr merge <number>`
-- **Close/Reopen** - `tea pr close/reopen <number>`
+- **Close** (`x`) - `tea pr close <number>`
+- **Reopen** (`o`) - `tea pr reopen <number>`
 
 ## Architecture
 

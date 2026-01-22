@@ -114,4 +114,35 @@ function M.preview(ctx)
   return Snacks.picker.preview.file(ctx)
 end
 
+---@param opts { item: snacks.picker.forgejo.Item }
+---@type snacks.picker.finder
+function M.actions(opts, ctx)
+  local item = opts.item
+  local actions = Actions.get_actions(item, ctx)
+  
+  return function(cb)
+    for name, action in pairs(actions) do
+      cb({
+        text = action.desc or name,
+        name = name,
+        action = action,
+        icon = action.icon,
+        priority = action.priority or 0,
+      })
+    end
+  end
+end
+
+---@type snacks.picker.format
+function M.actions_format(item)
+  local ret = {} ---@type snacks.picker.Highlight[]
+  
+  if item.icon then
+    ret[#ret + 1] = { item.icon .. " ", "Special" }
+  end
+  ret[#ret + 1] = { item.text or item.name, "Normal" }
+  
+  return ret
+end
+
 return M

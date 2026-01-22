@@ -32,6 +32,7 @@ local defaults = {
   keys = {
     select   = { "<cr>", "fg_actions" , desc = "Select Action" },
     checkout = { "c"   , "fg_checkout", desc = "Checkout PR" },
+    approve  = { "A"   , "fg_approve" , desc = "Approve PR" },
     comment  = { "a"   , "fg_comment" , desc = "Add Comment" },
     close    = { "x"   , "fg_close"   , desc = "Close" },
     reopen   = { "o"   , "fg_reopen"  , desc = "Reopen" },
@@ -315,13 +316,19 @@ function M.setup(ev)
     vim.schedule(function()
       local ok, forgejo_source = pcall(require, "snacks.picker.source.forgejo")
       if ok then
-        -- Register formatter
+        -- Register formatters
         Snacks.picker.format = Snacks.picker.format or {}
         Snacks.picker.format.forgejo_format = forgejo_source.format
+        Snacks.picker.format.forgejo_actions_format = forgejo_source.actions_format
         
         -- Register preview
         Snacks.picker.preview = Snacks.picker.preview or {}
         Snacks.picker.preview.forgejo_preview = forgejo_source.preview
+        
+        -- Register finders
+        Snacks.picker.finder = Snacks.picker.finder or {}
+        Snacks.picker.finder.forgejo_pr = forgejo_source.pr
+        Snacks.picker.finder.forgejo_actions = forgejo_source.actions
         
         -- Register actions
         local actions_ok, actions_mod = pcall(require, "snacks.forgejo.actions")
