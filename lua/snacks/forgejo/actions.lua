@@ -180,6 +180,7 @@ M.cli_actions = {
     title = "Comment on PR #{number}",
     success = "Commented on PR #{number}",
     edit = "body-file",
+    no_type_prefix = true, -- tea comment doesn't use "pr" prefix
   },
 }
 
@@ -240,7 +241,14 @@ end
 ---@param action snacks.forgejo.cli.Action
 ---@param ctx snacks.forgejo.action.ctx
 function M.run(item, action, ctx)
-  local args = action.cmd and { item.type, action.cmd, tostring(item.number) } or {}
+  local args = {}
+  if action.cmd then
+    if action.no_type_prefix then
+      args = { action.cmd, tostring(item.number) }
+    else
+      args = { item.type, action.cmd, tostring(item.number) }
+    end
+  end
   vim.list_extend(args, action.args or {})
   
   ---@type snacks.forgejo.cli.Action.ctx
@@ -503,8 +511,13 @@ function M.submit(ctx)
 
   if body:find("%S") then
     if edit == "body-file" then
-      -- Tea CLI uses --description, not --body-file
-      vim.list_extend(ctx.args, { "--description", body })
+      -- For comment command, body is a positional argument
+      -- For pr create, use --description flag
+      if ctx.opts.cmd == "comment" then
+        vim.list_extend(ctx.args, { body })
+      else
+        vim.list_extend(ctx.args, { "--description", body })
+      end
     else
       vim.list_extend(ctx.args, { "--" .. edit, body })
     end

@@ -89,7 +89,12 @@ function M:render(opts)
     return
   end
   opts = opts or {}
+  local old_state = self.item.state
   self.item = Api.get_cached(self.item)
+  -- Re-register keys if cached item has different state
+  if old_state ~= self.item.state then
+    self:keys()
+  end
 
   self:bo()
   self:wo()
@@ -103,9 +108,17 @@ function M:render(opts)
       if spinner then
         spinner:stop()
       end
+      -- Check if item actually changed (has new fields like 'state')
+      local old_state = self.item.state
+      local new_state = it.state
+      local item_changed = old_state ~= new_state or updated
       self.item = it
       if updated then
         Render.render(self.buf, it, self.opts)
+      end
+      -- Always re-register keys if item changed, even if not fully updated
+      -- This ensures state-dependent actions (close/reopen) become available
+      if item_changed then
         self:keys()
       end
     end)

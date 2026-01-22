@@ -49,7 +49,7 @@ function M.render(buf, item, opts)
   end
 
   -- Comments
-  if item.comments and #item.comments > 0 then
+  if item.comments and type(item.comments) == "table" and #item.comments > 0 then
     table.insert(lines, "---")
     table.insert(lines, "")
     table.insert(lines, "## Comments")
