@@ -1,28 +1,28 @@
 ---@meta
 
----@class snacks.forgejo.Config
+---@class snacks.tea.Config
 ---@field enabled? boolean
----@field tea? snacks.forgejo.tea.Config
----@field keys? table<string, snacks.forgejo.Keymap|false>
+---@field tea? snacks.tea.tea.Config
+---@field keys? table<string, snacks.tea.Keymap|false>
 ---@field wo? vim.wo|{}
 ---@field bo? vim.bo|{}
 ---@field diff? { min?: number, wrap?: number }
 ---@field scratch? { height?: number }
----@field icons? snacks.forgejo.icons
+---@field icons? snacks.tea.icons
 
----@class snacks.forgejo.tea.Config
+---@class snacks.tea.tea.Config
 ---@field cmd? string Path to tea binary (default: "tea")
 ---@field login? string Specific login to use, or nil for auto-detect
 ---@field remote? string Git remote to use (default: "origin")
 
----@alias snacks.forgejo.Keymap.fn fun(item:snacks.picker.forgejo.Item, buf:snacks.forgejo.Buf)
+---@alias snacks.tea.Keymap.fn fun(item:snacks.picker.tea.Item, buf:snacks.tea.Buf)
 
----@class snacks.forgejo.Keymap: vim.keymap.set.Opts
+---@class snacks.tea.Keymap: vim.keymap.set.Opts
 ---@field [1] string lhs
----@field [2] string|snacks.forgejo.Keymap.fn rhs
+---@field [2] string|snacks.tea.Keymap.fn rhs
 ---@field mode? string|string[] defaults to `n`
 
----@class snacks.forgejo.icons
+---@class snacks.tea.icons
 ---@field logo? string
 ---@field user? string
 ---@field checkmark? string
@@ -34,7 +34,7 @@
 ---@field review? { approved?: string, changes_requested?: string, commented?: string, dismissed?: string, pending?: string }
 ---@field merge_status? { clean?: string, dirty?: string, blocked?: string, unstable?: string }
 
----@class snacks.forgejo.PR
+---@class snacks.tea.PR
 ---@field index number
 ---@field title string
 ---@field state "open"|"closed"
@@ -52,24 +52,24 @@
 ---@field deadline? string
 ---@field assignees? string[]
 ---@field milestone? string
----@field labels? snacks.forgejo.Label[]
----@field comments? snacks.forgejo.Comment[]
+---@field labels? snacks.tea.Label[]
+---@field comments? snacks.tea.Comment[]
 ---@field diff? string
 ---@field patch? string
 
----@class snacks.forgejo.Label
+---@class snacks.tea.Label
 ---@field name string
 ---@field color string
 ---@field description? string
 
----@class snacks.forgejo.Comment
+---@class snacks.tea.Comment
 ---@field id number
 ---@field body string
 ---@field user string
 ---@field created_at string
 ---@field updated_at? string
 
----@class snacks.picker.forgejo.Item: snacks.forgejo.PR
+---@class snacks.picker.tea.Item: snacks.tea.PR
 ---@field uri string
 ---@field repo string
 ---@field type "pr"
@@ -77,52 +77,52 @@
 ---@field status? string
 ---@field dirty? boolean
 
----@class snacks.forgejo.api.View
+---@class snacks.tea.api.View
 ---@field type "pr"
 ---@field repo string
 ---@field number number
 ---@field uri? string
 
----@class snacks.forgejo.api.Cmd
+---@class snacks.tea.api.Cmd
 ---@field args string[]
 ---@field repo? string
 ---@field input? string
 ---@field notify? boolean
 ---@field on_error? fun(proc: snacks.spawn.Proc, err: string)
 
----@class snacks.forgejo.api.Fetch
+---@class snacks.tea.api.Fetch
 ---@field args string[]
 ---@field fields? string[]
 ---@field repo? string
 ---@field notify? boolean
 
----@class snacks.forgejo.action.ctx
----@field items snacks.picker.forgejo.Item[]
+---@class snacks.tea.action.ctx
+---@field items snacks.picker.tea.Item[]
 ---@field picker? snacks.Picker
 ---@field main? number
 ---@field action? snacks.picker.Action
 
----@class snacks.forgejo.cli.Action.ctx
----@field item snacks.picker.forgejo.Item
+---@class snacks.tea.cli.Action.ctx
+---@field item snacks.picker.tea.Item
 ---@field args string[]
----@field opts snacks.forgejo.cli.Action
+---@field opts snacks.tea.cli.Action
 ---@field picker? snacks.Picker
 ---@field scratch? snacks.win
 ---@field main? number
 ---@field input? string
 
----@alias snacks.forgejo.action.fn fun(item?: snacks.picker.forgejo.Item, ctx: snacks.forgejo.action.ctx)
+---@alias snacks.tea.action.fn fun(item?: snacks.picker.tea.Item, ctx: snacks.tea.action.ctx)
 
----@class snacks.forgejo.Action
----@field action snacks.forgejo.action.fn
+---@class snacks.tea.Action
+---@field action snacks.tea.action.fn
 ---@field desc? string
 ---@field name? string
 ---@field priority? number
 ---@field title? string
 ---@field type? "pr"
----@field enabled? fun(item: snacks.picker.forgejo.Item, ctx: snacks.forgejo.action.ctx): boolean
+---@field enabled? fun(item: snacks.picker.tea.Item, ctx: snacks.tea.action.ctx): boolean
 
----@class snacks.forgejo.cli.Action
+---@class snacks.tea.cli.Action
 ---@field cmd? string
 ---@field icon? string
 ---@field title? string
@@ -133,8 +133,8 @@
 ---@field confirm? string
 ---@field edit? string
 ---@field template? string
----@field on_submit? fun(body: string, ctx: snacks.forgejo.cli.Action.ctx): string?
----@field enabled? fun(item: snacks.picker.forgejo.Item): boolean
+---@field on_submit? fun(body: string, ctx: snacks.tea.cli.Action.ctx): string?
+---@field enabled? fun(item: snacks.picker.tea.Item): boolean
 ---@field refresh? boolean
 
 return {}

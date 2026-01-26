@@ -1,4 +1,4 @@
-# snacks-forgejo.nvim
+# snacks-tea.nvim
 
 A Forgejo/Gitea integration plugin for Neovim, built as an extension for [snacks.nvim](https://github.com/folke/snacks.nvim). This plugin wraps the [tea CLI](https://gitea.com/gitea/tea) to provide native PR management directly within Neovim.
 
@@ -43,10 +43,10 @@ go install gitea.com/gitea/tea@latest
 {
   "folke/snacks.nvim",
   dependencies = {
-    "your-username/snacks-forgejo.nvim"
+    "your-username/snacks-tea.nvim"
   },
   opts = {
-    forgejo = {
+    tea = {
       enabled = true,
       tea = {
         cmd = "tea",  -- Path to tea binary
@@ -77,7 +77,7 @@ Full configuration example:
 
 ```lua
 require("snacks").setup({
-  forgejo = {
+  tea = {
     enabled = true,
     
     -- Tea CLI configuration
@@ -89,13 +89,13 @@ require("snacks").setup({
     
     -- Buffer keymaps
     keys = {
-      select   = { "<cr>", "fg_actions" , desc = "Select Action" },
-      diff     = { "d"   , "fg_diff"    , desc = "View Diff" },
-      checkout = { "c"   , "fg_checkout", desc = "Checkout PR" },
-      approve  = { "A"   , "fg_approve" , desc = "Approve PR" },
-      comment  = { "a"   , "fg_comment" , desc = "Add Comment" },
-      close    = { "x"   , "fg_close"   , desc = "Close" },
-      reopen   = { "o"   , "fg_reopen"  , desc = "Reopen" },
+      select   = { "<cr>", "tea_actions" , desc = "Select Action" },
+      diff     = { "d"   , "tea_diff"    , desc = "View Diff" },
+      checkout = { "c"   , "tea_checkout", desc = "Checkout PR" },
+      approve  = { "A"   , "tea_approve" , desc = "Approve PR" },
+      comment  = { "a"   , "tea_comment" , desc = "Add Comment" },
+      close    = { "x"   , "tea_close"   , desc = "Close" },
+      reopen   = { "o"   , "tea_reopen"  , desc = "Reopen" },
     },
     
     -- Icons (customize if desired)
@@ -116,8 +116,8 @@ require("snacks").setup({
 ### Commands
 
 ```vim
-:lua Snacks.forgejo.pr()              " List all open PRs
-:lua Snacks.forgejo.pr({ state = "closed" })  " List closed PRs
+:lua Snacks.tea.pr()              " List all open PRs
+:lua Snacks.tea.pr({ state = "closed" })  " List closed PRs
 ```
 
 ### Picker Actions
@@ -162,7 +162,7 @@ The diff viewer mirrors the excellent UX of `snacks.gh` while working with Forge
 This plugin follows the architecture of `snacks.gh` closely:
 
 ```
-lua/snacks/forgejo/
+lua/snacks/tea/
 ├── init.lua          # Main module, config, setup
 ├── api.lua           # Tea CLI wrapper
 ├── actions.lua       # User actions (checkout, review, merge, etc.)
@@ -175,7 +175,7 @@ lua/snacks/forgejo/
 
 ## Comparison with snacks.gh
 
-| Feature | snacks.gh (GitHub) | snacks-forgejo.nvim |
+| Feature | snacks.gh (GitHub) | snacks-tea.nvim |
 |---------|-------------------|---------------------|
 | CLI Tool | `gh` (official GitHub CLI) | `tea` (Gitea/Forgejo CLI) |
 | List PRs | ✅ | ✅ |
