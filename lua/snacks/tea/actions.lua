@@ -152,6 +152,7 @@ M.cli_actions = {
 		cmd = "checkout",
 		icon = " ",
 		type = "pr",
+		priority = 20,  -- High for quick access
 		confirm = "Are you sure you want to checkout PR #{number}?",
 		title = "Checkout PR #{number}",
 		success = "Checked out PR #{number}",
@@ -161,6 +162,7 @@ M.cli_actions = {
 		icon = config.icons.crossmark,
 		title = "Close PR #{number}",
 		success = "Closed PR #{number}",
+		priority = 0,  -- Low priority
 		enabled = function(item)
 			return item.state == "open"
 		end,
@@ -170,6 +172,7 @@ M.cli_actions = {
 		icon = " ",
 		title = "Reopen PR #{number}",
 		success = "Reopened PR #{number}",
+		priority = 0,  -- Low priority
 		enabled = function(item)
 			return item.state == "closed"
 		end,
@@ -180,6 +183,7 @@ M.cli_actions = {
 		type = "pr",
 		success = "Merged PR #{number}",
 		title = "Merge PR #{number}",
+		priority = 10,  -- Medium-high for merges
 		confirm = "Are you sure you want to merge PR #{number}?",
 		enabled = function(item)
 			return item.state == "open"
@@ -191,6 +195,7 @@ M.cli_actions = {
 		type = "pr",
 		title = "Approve PR #{number}",
 		success = "Approved PR #{number}",
+		priority = 15,  -- High for approvals
 		enabled = function(item)
 			return item.state == "open"
 		end,
@@ -201,6 +206,7 @@ M.cli_actions = {
 		icon = " ",
 		title = "Request changes on PR #{number}",
 		success = "Requested changes on PR #{number}",
+		priority = 12,  -- Medium-high for requests
 		enabled = function(item)
 			return item.state == "open"
 		end,
@@ -211,6 +217,7 @@ M.cli_actions = {
 		icon = " ",
 		title = "Review PR #{number}",
 		success = "Reviewed PR #{number}",
+		priority = 8,  -- Medium for general reviews
 		enabled = function(item)
 			return item.state == "open"
 		end,
@@ -220,6 +227,7 @@ M.cli_actions = {
 		icon = " ",
 		title = "Comment on PR #{number}",
 		success = "Commented on PR #{number}",
+		priority = 5,  -- Lower for comments
 		edit = "body-file",
 		no_type_prefix = true, -- tea comment doesn't use "pr" prefix
 	},
