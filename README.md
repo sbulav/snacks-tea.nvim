@@ -66,8 +66,8 @@ First, configure tea with your Forgejo instance:
 
 ```bash
 tea login add \
-  --name forgejo.pyn.ru \
-  --url https://forgejo.pyn.ru \
+  --name forgejo.example.com \
+  --url https://forgejo.example.com \
   --token YOUR_ACCESS_TOKEN
 ```
 
