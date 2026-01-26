@@ -1,6 +1,9 @@
 # snacks-tea.nvim
 
-A Forgejo/Gitea integration plugin for Neovim, built as an extension for [snacks.nvim](https://github.com/folke/snacks.nvim). This plugin wraps the [tea CLI](https://gitea.com/gitea/tea) to provide native PR management directly within Neovim.
+A Forgejo/Gitea integration plugin for Neovim, built as an extension for
+[snacks.nvim](https://github.com/folke/snacks.nvim). This plugin wraps the [tea
+CLI](https://gitea.com/gitea/tea) to provide native PR management directly
+within Neovim.
 
 ## Features
 
@@ -109,6 +112,18 @@ require("snacks").setup({
     }
   }
 })
+
+### Global Keymaps
+
+Add these to your keymap setup:
+
+```lua
+keys = {
+  { "<leader>tp", function() Snacks.tea.pr() end, desc = "Tea Pull Requests (open)" },
+  { "<leader>tP", function() Snacks.tea.pr { state = "all" } end, desc = "Tea Pull Requests (all)" },
+  { "<leader>tc", function() Snacks.tea.pr_create {} end, desc = "Tea Create Pull Request" },
+},
+```
 ```
 
 ## GH-Style Visualization
@@ -204,9 +219,9 @@ lua/snacks/tea/
 | View PR | ✅ | ✅ |
 | View Diff | ✅ | ✅ |
 | Checkout PR | ✅ | ✅ |
-| Create PR | ✅ | 🚧 (Planned) |
+| Create PR | ✅ | ✅ | |
 | Review PR | ✅ | ✅ |
-| Inline comments | ✅ | 🚧 (Planned) |
+| Inline comments | ✅ | ✅ | |
 | GraphQL support | ✅ | ❌ (tea uses REST) |
 | Self-hosted | ❌ (GitHub only) | ✅ (Any Forgejo/Gitea) |
 
@@ -245,8 +260,8 @@ git remote get-url origin
 - [x] Review PRs (approve/reject/comment)
 - [x] Merge PRs
 - [x] Diff viewer integration
-- [ ] Create PRs from scratch buffer
-- [ ] Inline code comments
+- [x] Create PRs from scratch buffer
+- [x] Inline code comments
 - [ ] PR templates support
 - [ ] Multi-instance support
 
