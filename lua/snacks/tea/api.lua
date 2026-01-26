@@ -134,7 +134,7 @@ function M.cmd(cb, opts)
 		cmd = tea_cmd,
 		args = args,
 		input = opts.input,
-		timeout = 10000,
+		timeout = 30000,
 		on_exit = function(proc, err)
 			if err then
 				vim.schedule(function()
