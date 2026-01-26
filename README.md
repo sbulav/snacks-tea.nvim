@@ -5,6 +5,9 @@ A Forgejo/Gitea integration plugin for Neovim, built as an extension for
 CLI](https://gitea.com/gitea/tea) to provide native PR management directly
 within Neovim.
 
+<img width="3070" height="2196" alt="ss_1769422957" src="https://github.com/user-attachments/assets/3c57db80-101c-4ca0-b817-4fa8fffcda62" />
+
+
 ## Features
 
 - 📋 **List & Browse PRs** - View all pull requests with filtering
@@ -124,7 +127,6 @@ keys = {
   { "<leader>tc", function() Snacks.tea.pr_create {} end, desc = "Tea Create Pull Request" },
 },
 ```
-```
 
 ## GH-Style Visualization
 
@@ -172,6 +174,8 @@ When viewing the PR list, you can:
 
 ### PR Actions
 
+<img width="1712" height="652" alt="ss_1769423138" src="https://github.com/user-attachments/assets/2ea24749-0168-4b19-8f34-0c1e89b0e455" />
+
 Once viewing a PR, available actions include:
 
 - **View Diff** (`d`) - Open a file-by-file diff viewer with navigation
@@ -184,6 +188,8 @@ Once viewing a PR, available actions include:
 - **Reopen** (`o`) - `tea pr reopen <number>`
 
 ### Diff Viewer
+
+<img width="3118" height="2162" alt="ss_1769423306" src="https://github.com/user-attachments/assets/f8b4e72d-4a2c-448a-91e6-0156093001bf" />
 
 The diff viewer (`d` key) provides an enhanced view of PR changes:
 
