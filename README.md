@@ -152,6 +152,8 @@ Future: Toggle colors (github vs gitea palette).
 
 ## Usage
 
+<img width="3270" height="1012" alt="ss_1769423937" src="https://github.com/user-attachments/assets/fa2e156a-752f-4f04-877e-770776beed8a" />
+
 ### Commands
 
 ```vim
