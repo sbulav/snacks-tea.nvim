@@ -111,6 +111,28 @@ require("snacks").setup({
 })
 ```
 
+## GH-Style Visualization
+
+The plugin now features a visual style closely matching `snacks.gh`:
+
+- **Badges & Icons**: Colored state badges (e.g., green for open PRs), user icons, label colors from Forgejo.
+- **Rich Rendering**: Highlighted metadata, indented comments with visual guides (`┃`), syntax-highlighted diffs.
+- **Picker Integration**: Compact list with state icons, authors, and label badges.
+
+This is enabled by default via `gh_style.enabled = true`. To disable for minimal rendering:
+
+```lua
+{
+  tea = {
+    gh_style = {
+      enabled = false,  -- Plain markdown, no icons/highlights
+    },
+  },
+}
+```
+
+Future: Toggle colors (github vs gitea palette).
+
 ## Usage
 
 ### Commands

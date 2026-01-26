@@ -59,11 +59,11 @@ function M.format(item)
 
 	-- State icon
 	local state_icon = icons.pr[item.state] or icons.pr.other
-	local state_hl = "SnacksForgejoPr" .. item.state:sub(1, 1):upper() .. item.state:sub(2)
+	local state_hl = "SnacksTeaPr" .. item.state:sub(1, 1):upper() .. item.state:sub(2)
 	ret[#ret + 1] = { state_icon .. " ", state_hl }
 
 	-- PR number
-	ret[#ret + 1] = { "#" .. item.number .. " ", "SnacksForgejoNumber" }
+	ret[#ret + 1] = { "#" .. item.number .. " ", "Number" }
 
 	-- Title
 	ret[#ret + 1] = { item.title or "", "Normal" }
@@ -71,8 +71,8 @@ function M.format(item)
 	-- Author
 	if item.author then
 		ret[#ret + 1] = { " " }
-		ret[#ret + 1] = { icons.user, "SnacksForgejoGray" }
-		ret[#ret + 1] = { item.author, "SnacksForgejoGray" }
+		ret[#ret + 1] = { icons.user, "SnacksTeaGray" }
+		ret[#ret + 1] = { item.author, "SnacksTeaGray" }
 	end
 
 	-- Labels

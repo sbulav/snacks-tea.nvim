@@ -58,11 +58,11 @@ local defaults = {
 		conceallevel = 2,
 		list = false,
 		winhighlight = Snacks.util.winhl({
-			Normal = "SnacksForgejoNormal",
-			NormalFloat = "SnacksForgejoNormalFloat",
-			FloatBorder = "SnacksForgejoBorder",
-			FloatTitle = "SnacksForgejoTitle",
-			FloatFooter = "SnacksForgejoFooter",
+			Normal = "SnacksTeaNormal",
+			NormalFloat = "SnacksTeaNormalFloat",
+			FloatBorder = "SnacksTeaBorder",
+			FloatTitle = "SnacksTeaTitle",
+			FloatFooter = "SnacksTeaFooter",
 		}),
 	},
 
@@ -78,47 +78,60 @@ local defaults = {
 		height = 20, -- height of scratch window (increased for PR creation)
 	},
 
-  -- stylua: ignore
-  icons = {
-    logo = " ",
-    user = " ",
-    checkmark = " ",
-    crossmark = " ",
-    block = "■",
-    file = " ",
+-- stylua: ignore
+   icons = {
+     logo = " ",
+     user= " ",
+     checkmark = " ",
+     crossmark = " ",
+     block = "■",
+     file = " ",
     checks = {
-      pending = " ",
-      success = " ",
-      failure = "",
-      skipped = " ",
+      pending = " ",
+      success = " ",
+      failure = "",
+      skipped = " ",
     },
     pr = {
-      open   = " ",
-      closed = " ",
-      merged = " ",
-      draft  = " ",
-      other  = " ",
+      open   = " ",
+      closed = " ",
+      merged = " ",
+      draft  = " ",
+      other  = " ",
     },
     review = {
-      approved          = " ",
-      changes_requested = " ",
-      commented         = " ",
-      dismissed         = " ",
-      pending           = " ",
+      approved           = " ",
+      changes_requested  = " ",
+      commented          = " ",
+      dismissed          = " ",
+      pending            = " ",
     },
     merge_status = {
-      clean    = " ",
-      dirty    = " ",
-      blocked  = " ",
-      unstable = " "
+      clean    = " ",
+      dirty    = " ",
+      blocked  = " ",
+      unstable = " "
     },
-  },
+     reactions = {
+       thumbs_up   = "👍",
+       thumbs_down = "👎",
+       eyes        = "👀",
+       confused    = "😕",
+       heart       = "❤️",
+       hooray      = "🎉",
+       laugh       = "😄",
+       rocket      = "🚀",
+     },
+   },
+	gh_style = {
+		enabled = true,
+	},
 }
 
 -- Set up highlight groups (similar to gh plugin)
 local function diff_linenr(hl)
-	local fg = Snacks.util.color({ hl, "SnacksForgejoNormalFloat", "Normal" })
-	local bg = Snacks.util.color({ hl, "SnacksForgejoNormalFloat", "Normal" }, "bg")
+	local fg = Snacks.util.color({ hl, "SnacksTeaNormalFloat", "Normal" })
+	local bg = Snacks.util.color({ hl, "SnacksTeaNormalFloat", "Normal" }, "bg")
 	bg = bg or vim.o.background == "dark" and "#1e1e1e" or "#f5f5f5"
 	return {
 		fg = fg,
@@ -140,10 +153,10 @@ Snacks.util.set_hl({
 	Gray = { fg = "#6a737d" },
 	Red = { fg = "#d73a49" },
 	Branch = "@markup.link",
-	PrOpen = "SnacksForgejoGreen",
-	PrClosed = "SnacksForgejoRed",
-	PrMerged = "SnacksForgejoPurple",
-	PrDraft = "SnacksForgejoGray",
+	PrOpen = "SnacksTeaGreen",
+	PrClosed = "SnacksTeaRed",
+	PrMerged = "SnacksTeaPurple",
+	PrDraft = "SnacksTeaGray",
 	Label = "@property",
 	Delim = "@punctuation.delimiter",
 	UserBadge = "DiagnosticInfo",
@@ -157,13 +170,13 @@ Snacks.util.set_hl({
 	PrUnstable = "DiagnosticWarn",
 	PrDirty = "DiagnosticError",
 	PrBlocked = "DiagnosticError",
-	Additions = "SnacksForgejoGreen",
-	Deletions = "SnacksForgejoRed",
+	Additions = "SnacksTeaGreen",
+	Deletions = "SnacksTeaRed",
 	CheckPending = "DiagnosticWarn",
-	CheckSuccess = "SnacksForgejoGreen",
-	CheckFailure = "SnacksForgejoRed",
-	CheckSkipped = "SnacksForgejoStat",
-	ReviewApproved = "SnacksForgejoGreen",
+	CheckSuccess = "SnacksTeaGreen",
+	CheckFailure = "SnacksTeaRed",
+	CheckSkipped = "SnacksTeaStat",
+	ReviewApproved = "SnacksTeaGreen",
 	ReviewChangesRequested = "DiagnosticError",
 	ReviewCommented = {},
 	ReviewPending = "DiagnosticWarn",
@@ -176,7 +189,8 @@ Snacks.util.set_hl({
 	DiffDeleteLineNr = diff_linenr("DiffDelete"),
 	DiffContextLineNr = diff_linenr("DiffChange"),
 	Stat = { fg = Snacks.util.color("SignColumn") },
-}, { default = true, prefix = "SnacksForgejo" })
+	SuggestionBadge = "Special",
+}, { default = true, prefix = "SnacksTea" })
 
 M._config = nil ---@type snacks.tea.Config?
 local did_setup = false
