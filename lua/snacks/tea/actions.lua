@@ -484,11 +484,11 @@ function M.edit(ctx)
 	Snacks.scratch({
 		ft = "markdown",
 		icon = config.icons.logo,
-		name = tpl(ctx.opts.title or "{cmd} PR #{number}"),
+		name = tpl(ctx.item.title or ctx.opts.title or "{cmd} PR #{number}"),
 		template = tpl(template),
 		filekey = {
-			cwd = false,
-			branch = false,
+			cwd = true,
+			branch = true,
 			count = false,
 			id = tpl("{repo}/pr/{cmd}"),
 		},
