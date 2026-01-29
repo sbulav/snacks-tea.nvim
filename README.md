@@ -49,7 +49,7 @@ go install gitea.com/gitea/tea@latest
 {
   "folke/snacks.nvim",
   dependencies = {
-    "your-username/snacks-tea.nvim"
+    "sbulav/snacks-tea.nvim"
   },
   opts = {
     tea = {
