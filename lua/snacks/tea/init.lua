@@ -44,73 +44,129 @@ local defaults = {
     end, desc = "Refresh PR" },
   },
 
-	---@type vim.wo|{}
-	wo = {
-		breakindent = true,
-		wrap = true,
-		showbreak = "",
-		linebreak = true,
-		number = false,
-		relativenumber = false,
-		foldexpr = "v:lua.vim.treesitter.foldexpr()",
-		foldmethod = "expr",
-		concealcursor = "n",
-		conceallevel = 2,
-		list = false,
-		winhighlight = Snacks.util.winhl({
-			Normal = "SnacksTeaNormal",
-			NormalFloat = "SnacksTeaNormalFloat",
-			FloatBorder = "SnacksTeaBorder",
-			FloatTitle = "SnacksTeaTitle",
-			FloatFooter = "SnacksTeaFooter",
-		}),
+	--- UI configuration
+	ui = {
+		--- Highlight groups for different PR elements
+		highlights = {
+			pr_state = {
+				open = "DiagnosticOk",
+				closed = "DiagnosticError",
+				merged = "DiagnosticInfo",
+				draft = "Comment",
+			},
+			author = "Identifier",
+			assignee = "Function",
+			label = "Special",
+			branch = "@markup.link",
+			number = "Number",
+			title = "Normal",
+			description = "Normal",
+			comment_header = "DiagnosticInfo",
+			comment_body = "Normal",
+			date = "Comment",
+		},
+		--- Scratch window dimensions
+		scratch = {
+			width = 160,
+			height = 20,
+		},
 	},
 
-	---@type vim.bo|{}
-	bo = {},
+	--- Buffer display configuration
+	buffer = {
+		--- Window options for PR buffers
+		---@type vim.wo|{}
+		wo = {
+			breakindent = true,
+			wrap = true,
+			showbreak = "",
+			linebreak = true,
+			number = false,
+			relativenumber = false,
+			foldexpr = "v:lua.vim.treesitter.foldexpr()",
+			foldmethod = "expr",
+			foldlevel = 1, -- Collapse sections by default
+			concealcursor = "n",
+			conceallevel = 2,
+			list = false,
+			signcolumn = "no",
+			winhighlight = Snacks.util.winhl({
+				Normal = "SnacksTeaNormal",
+				NormalFloat = "SnacksTeaNormalFloat",
+				FloatBorder = "SnacksTeaBorder",
+				FloatTitle = "SnacksTeaTitle",
+				FloatFooter = "SnacksTeaFooter",
+			}),
+		},
+		--- Buffer options
+		---@type vim.bo|{}
+		bo = {},
+		--- Display options
+		display = {
+			show_comments = true,
+			show_diff = true,
+			show_reviews = true,
+			show_checks = true,
+			fold_comments = true, -- Auto-fold comment threads
+			fold_diff = true, -- Auto-fold diff section
+		},
+		--- Optional integrations
+		integrations = {
+			render_markdown = true, -- Auto-detect render-markdown.nvim
+		},
+	},
+
+	--- Layout configuration for different picker types
+	layout = {
+		pr_list = nil, -- Use default
+		actions = {
+			preset = "select",
+			layout = { max_width = 60, max_height = 20 },
+		},
+		diff = nil, -- Use default
+		create = {
+			scratch = { width = 160, height = 25 },
+		},
+	},
 
 	diff = {
 		min = 4, -- minimum number of lines changed to show diff
 		wrap = 80, -- wrap diff lines at this length
 	},
 
-	scratch = {
-		height = 20, -- height of scratch window (increased for PR creation)
-	},
-
 -- stylua: ignore
    icons = {
-     logo = " ",
-     user= " ",
-     checkmark = " ",
-     crossmark = " ",
+     logo = " ",
+     user= " ",
+     checkmark = " ",
+     crossmark = " ",
      block = "■",
-     file = " ",
+     file = " ",
     checks = {
-      pending = " ",
-      success = " ",
-      failure = "",
-      skipped = " ",
+      pending = " ",
+      success = " ",
+      failure = "",
+      skipped = " ",
     },
     pr = {
-      open   = " ",
-      closed = " ",
-      merged = " ",
-      draft  = " ",
-      other  = " ",
+      open   = " ",
+      closed = " ",
+      merged = " ",
+      draft  = " ",
+      other  = " ",
     },
     review = {
-      approved           = " ",
-      changes_requested  = " ",
-      commented          = " ",
-      dismissed          = " ",
-      pending            = " ",
+      approved           = " ",
+      changes_requested  = " ",
+      commented          = " ",
+      dismissed          = " ",
+      pending            = " ",
     },
     merge_status = {
-      clean    = " ",
-      dirty    = " ",
-      blocked  = " ",
-      unstable = " "
+      clean    = " ",
+      dirty    = " ",
+      blocked  = " ",
+      unstable = " "
     },
      reactions = {
        thumbs_up   = "👍",
@@ -361,7 +417,12 @@ function M.setup(ev)
 				local config_ok, tea_config = pcall(require, "snacks.picker.config.tea")
 				if config_ok then
 					for name, config in pairs(tea_config) do
-						Snacks.picker.config.defaults[name] = config
+						-- Handle both function and table configs
+						if type(config) == "function" then
+							Snacks.picker.config.defaults[name] = config()
+						else
+							Snacks.picker.config.defaults[name] = config
+						end
 					end
 				end
 			end

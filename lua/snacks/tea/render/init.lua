@@ -51,52 +51,72 @@ local function time_prop(field)
 end
 
 M.props = {
-  {
-    name = "Status",
-    hl = function(item, opts)
-      local icons = opts.icons.pr
-      local status = safe_field(item, "state", "other")
-      local ret = {}
-      local icon = icons[status:lower()] or icons.other or " "
-      local hl = "SnacksTeaPr" .. U.title(status)
-      local text = icon .. U.title(status)
-      H.extend(ret, H.badge(text, { bg = Snacks.util.color(hl), fg = "#ffffff" }))
-      if safe_field(item, "base") ~= "" and safe_field(item, "head") ~= "" then
-        ret[#ret + 1] = { " " }
-        vim.list_extend(ret, {
-          { safe_field(item, "base"), "SnacksTeaBranch" },
-          { " ← ", "SnacksTeaDelim" },
-          { safe_field(item, "head"), "SnacksTeaBranch" },
-        })
-      end
-      return ret
-    end,
-  },
-  {
-    name = "Author",
-    hl = function(item, opts)
-      local author = safe_field(item, "author", "Unknown")
-      return H.badge(opts.icons.user .. " " .. author, "SnacksTeaUserBadge")
-    end,
-  },
-  time_prop("created_at"),
-  time_prop("updated_at"),
-  {
-    name = "Labels",
-    hl = function(item)
-      local ret = {}
-      local labels = safe_field(item, "labels", {})
-      if type(labels) ~= "table" then labels = {} end
-      for _, label in ipairs(labels) do
-        local color = safe_field(label, "color", "888888")
-        local name = safe_field(label, "name", "unknown")
-        local badge = H.badge(name, "#" .. color)
-        H.extend(ret, badge)
-        ret[#ret + 1] = { " " }
-      end
-      return ret
-    end,
-  },
+	{
+		name = "Status",
+		hl = function(item, opts)
+			local icons = opts.icons.pr
+			local status = safe_field(item, "state", "other")
+			local ret = {}
+			local icon = icons[status:lower()] or icons.other or " "
+			
+			-- Use custom highlight from ui config if available
+			local ui_hl = opts.ui and opts.ui.highlights or {}
+			local hl = (ui_hl.pr_state and ui_hl.pr_state[status:lower()]) 
+				or "SnacksTeaPr" .. U.title(status)
+			
+			local text = icon .. U.title(status)
+			H.extend(ret, H.badge(text, { bg = Snacks.util.color(hl), fg = "#ffffff" }))
+			if safe_field(item, "base") ~= "" and safe_field(item, "head") ~= "" then
+				ret[#ret + 1] = { " " }
+				local branch_hl = ui_hl.branch or "SnacksTeaBranch"
+				vim.list_extend(ret, {
+					{ safe_field(item, "base"), branch_hl },
+					{ " ← ", "SnacksTeaDelim" },
+					{ safe_field(item, "head"), branch_hl },
+				})
+			end
+			return ret
+		end,
+	},
+	{
+		name = "Author",
+		hl = function(item, opts)
+			local author = safe_field(item, "author", "Unknown")
+			local ui_hl = opts.ui and opts.ui.highlights or {}
+			local author_hl = ui_hl.author or "SnacksTeaUserBadge"
+			return H.badge(opts.icons.user .. " " .. author, author_hl)
+		end,
+	},
+	{
+		name = "Assignee",
+		hl = function(item, opts)
+			local assignee = safe_field(item, "assignee", "")
+			if assignee == "" or assignee == safe_field(item, "author", "") then
+				return {}
+			end
+			local ui_hl = opts.ui and opts.ui.highlights or {}
+			local assignee_hl = ui_hl.assignee or "Function"
+			return H.badge("→ " .. assignee, assignee_hl)
+		end,
+	},
+	time_prop("created_at"),
+	time_prop("updated_at"),
+	{
+		name = "Labels",
+		hl = function(item)
+			local ret = {}
+			local labels = safe_field(item, "labels", {})
+			if type(labels) ~= "table" then labels = {} end
+			for _, label in ipairs(labels) do
+				local color = safe_field(label, "color", "888888")
+				local name = safe_field(label, "name", "unknown")
+				local badge = H.badge(name, "#" .. color)
+				H.extend(ret, badge)
+				ret[#ret + 1] = { " " }
+			end
+			return ret
+		end,
+	},
 }
 
 local function indent(lines, opts)
@@ -131,12 +151,15 @@ local function indent(lines, opts)
 end
 
 function M.comment_header(comment, opts)
-  local ret = {}
-  local user = safe_field(comment, "user", "Unknown")
-  H.extend(ret, H.badge(opts.icons.user .. " " .. user, "SnacksTeaUserBadge"))
-  local created = safe_field(comment, "created", "Unknown")
-  ret[#ret + 1] = { " · " .. created, "SnacksPickerGitDate" }
-  return ret
+	local ret = {}
+	local user = safe_field(comment, "user", "Unknown")
+	local ui_hl = opts.ui and opts.ui.highlights or {}
+	local header_hl = ui_hl.comment_header or "SnacksTeaUserBadge"
+	H.extend(ret, H.badge(opts.icons.user .. " " .. user, header_hl))
+	local created = safe_field(comment, "created", "Unknown")
+	local date_hl = ui_hl.date or "SnacksPickerGitDate"
+	ret[#ret + 1] = { " · " .. created, date_hl }
+	return ret
 end
 
 function M.comment_body(comment)
@@ -153,95 +176,142 @@ end
 ---@param item snacks.picker.tea.Item
 ---@param opts snacks.tea.Config|{partial?:boolean}
 function M.render(buf, item, opts)
-  if not vim.api.nvim_buf_is_valid(buf) then
-    return
-  end
+	if not vim.api.nvim_buf_is_valid(buf) then
+		return
+	end
 
-  opts = opts or {}
-  local lines = {} ---@type snacks.picker.Highlight[][]
+	opts = opts or {}
+	local lines = {} ---@type snacks.picker.Highlight[][]
+	local ui_hl = opts.ui and opts.ui.highlights or {}
+	local display = opts.buffer and opts.buffer.display or {}
 
-  -- Header with state
-  local state_icon = opts.icons.pr[safe_field(item, "state", "other"):lower()] or opts.icons.pr.other or " "
-  local state_hl = "SnacksTeaPr" .. U.title(safe_field(item, "state", "other"))
-  local header = { { "# " }, { state_icon, state_hl }, { " PR #" .. safe_field(item, "number", "?") .. ": " }, { safe_field(item, "title", "Untitled") } }
-  lines[#lines + 1] = header
-  lines[#lines + 1] = {}
+	-- Header with state
+	local state = safe_field(item, "state", "other")
+	local state_icon = opts.icons.pr[state:lower()] or opts.icons.pr.other or " "
+	local state_hl = (ui_hl.pr_state and ui_hl.pr_state[state:lower()]) 
+		or "SnacksTeaPr" .. U.title(state)
+	local number_hl = ui_hl.number or "Number"
+	local title_hl = ui_hl.title or "Normal"
+	local header = { 
+		{ "# " }, 
+		{ state_icon, state_hl }, 
+		{ " PR #" .. safe_field(item, "number", "?") .. ": ", number_hl }, 
+		{ safe_field(item, "title", "Untitled"), title_hl } 
+	}
+	lines[#lines + 1] = header
+	lines[#lines + 1] = {}
 
-  -- Metadata
-  for _, prop in ipairs(M.props) do
-    local value = prop.hl(item, opts)
-    if value and #value > 0 then
-      local line = { { prop.name, "SnacksTeaLabel" }, { ":", "SnacksTeaDelim" }, { " " } }
-      H.extend(line, value)
-      lines[#lines + 1] = line
-    end
-  end
+	-- Metadata
+	for _, prop in ipairs(M.props) do
+		local value = prop.hl(item, opts)
+		if value and #value > 0 then
+			local line = { { prop.name, "SnacksTeaLabel" }, { ":", "SnacksTeaDelim" }, { " " } }
+			H.extend(line, value)
+			lines[#lines + 1] = line
+		end
+	end
 
-  lines[#lines + 1] = {}
+	lines[#lines + 1] = {}
 
-  lines[#lines + 1] = { { "---", "@punctuation.special.markdown" } }
-  lines[#lines + 1] = {}
+	lines[#lines + 1] = { { "---", "@punctuation.special.markdown" } }
+	lines[#lines + 1] = {}
 
-  -- Body
-  if safe_field(item, "body", "") ~= "" then
-    lines[#lines + 1] = { { "## Description" } }
-    lines[#lines + 1] = {}
-    local body = vim.split(safe_field(item, "body", ""), "\n")
-    for _, l in ipairs(body) do
-      lines[#lines + 1] = { { l } }
-    end
-    lines[#lines + 1] = {}
-  end
+	-- Body
+	if safe_field(item, "body", "") ~= "" then
+		lines[#lines + 1] = { { "## Description" } }
+		lines[#lines + 1] = {}
+		local body = vim.split(safe_field(item, "body", ""), "\n")
+		for _, l in ipairs(body) do
+			lines[#lines + 1] = { { l } }
+		end
+		lines[#lines + 1] = {}
+	end
 
-  -- Comments
-  local threads = safe_field(item, "comments", {})
-  if type(threads) ~= "table" then threads = {} end
-  if #threads > 0 then
-    lines[#lines + 1] = { { "## 💬 Comments" } }
-    lines[#lines + 1] = {}
-    for _, comment in ipairs(threads) do
-      local header = M.comment_header(comment, opts)
-      lines[#lines + 1] = header
-      local body_lines = M.comment_body(comment)
-      body_lines = indent(body_lines, { markdown = true })
-      vim.list_extend(lines, body_lines)
-      lines[#lines + 1] = {}
-    end
-  end
+	-- Comments (conditional rendering)
+	local threads = safe_field(item, "comments", {})
+	if type(threads) ~= "table" then threads = {} end
+	if #threads > 0 and (display.show_comments ~= false) then
+		-- Add fold marker for comments section
+		local comments_header = { { "## 💬 Comments" } }
+		if display.fold_comments then
+			comments_header[#comments_header + 1] = { " {{{", "Comment" }
+		end
+		lines[#lines + 1] = comments_header
+		lines[#lines + 1] = {}
+		
+		for _, comment in ipairs(threads) do
+			local header = M.comment_header(comment, opts)
+			lines[#lines + 1] = header
+			local body_lines = M.comment_body(comment)
+			body_lines = indent(body_lines, { markdown = true })
+			vim.list_extend(lines, body_lines)
+			lines[#lines + 1] = {}
+		end
+		
+		-- Close fold marker
+		if display.fold_comments then
+			lines[#lines + 1] = { { "}}}", "Comment" } }
+			lines[#lines + 1] = {}
+		end
+	end
 
-  -- Diff
-  if safe_field(item, "diff", "") ~= "" and not opts.partial then
-    lines[#lines + 1] = { { "---" } }
-    lines[#lines + 1] = {}
-    lines[#lines + 1] = { { "## Diff" } }
-    lines[#lines + 1] = {}
-    lines[#lines + 1] = { { "```diff" } }
-    local diff_lines = vim.split(safe_field(item, "diff", ""), "\n")
-    for _, dl in ipairs(diff_lines) do
-      local prefix = dl:match("^([ +%-])")
-      local hl_group = prefix == "+" and "DiffAdd" or prefix == "-" and "DiffDelete" or "DiffText"
-      lines[#lines + 1] = { { dl, hl_group } }
-    end
-    lines[#lines + 1] = { { "```" } }
-    lines[#lines + 1] = {}
-  end
+	-- Diff (conditional rendering)
+	if safe_field(item, "diff", "") ~= "" and not opts.partial and (display.show_diff ~= false) then
+		lines[#lines + 1] = { { "---" } }
+		lines[#lines + 1] = {}
+		
+		-- Add fold marker for diff section
+		local diff_header = { { "## Diff" } }
+		if display.fold_diff then
+			diff_header[#diff_header + 1] = { " {{{", "Comment" }
+		end
+		lines[#lines + 1] = diff_header
+		lines[#lines + 1] = {}
+		
+		lines[#lines + 1] = { { "```diff" } }
+		local diff_lines = vim.split(safe_field(item, "diff", ""), "\n")
+		for _, dl in ipairs(diff_lines) do
+			local prefix = dl:match("^([ +%-])")
+			local hl_group = prefix == "+" and "DiffAdd" or prefix == "-" and "DiffDelete" or "DiffText"
+			lines[#lines + 1] = { { dl, hl_group } }
+		end
+		lines[#lines + 1] = { { "```" } }
+		
+		-- Close fold marker
+		if display.fold_diff then
+			lines[#lines + 1] = { { "}}}", "Comment" } }
+		end
+		lines[#lines + 1] = {}
+	end
 
-  local changed = H.render(buf, ns, lines)
+	local changed = H.render(buf, ns, lines)
 
-  if changed then
-    Markdown.render(buf, { bullets = false })
-  end
+	if changed then
+		Markdown.render(buf, { bullets = false })
+		
+		-- Integrate render-markdown.nvim if enabled and available
+		local integrations = opts.buffer and opts.buffer.integrations or {}
+		if integrations.render_markdown and package.loaded["render-markdown"] then
+			pcall(function()
+				require("render-markdown").render({
+					buf = buf,
+					event = "TeaBuffer",
+					config = { render_modes = true },
+				})
+			end)
+		end
+	end
 
-  -- Apply Treesitter folding if available
-  vim.schedule(function()
-    for _, win in ipairs(vim.fn.win_findbuf(buf)) do
-      vim.api.nvim_win_call(win, function()
-        if vim.wo.foldmethod == "expr" then
-          vim.wo.foldmethod = "expr"
-        end
-      end)
-    end
-  end)
+	-- Apply Treesitter folding if available
+	vim.schedule(function()
+		for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+			vim.api.nvim_win_call(win, function()
+				if vim.wo.foldmethod == "expr" then
+					vim.wo.foldmethod = "expr"
+				end
+			end)
+		end
+	end)
 end
 
 return M

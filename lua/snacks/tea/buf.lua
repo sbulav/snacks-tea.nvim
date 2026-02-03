@@ -21,11 +21,19 @@ function M.new(buf, item)
 	self.buf = buf
 	self.item = item
 	self.opts = vim.deepcopy(Snacks.tea.config())
-	self.opts.bo = Snacks.config.merge({}, self.opts.bo, {
+	
+	-- Merge buffer-specific bo options
+	local buffer_bo = self.opts.buffer and self.opts.buffer.bo or {}
+	self.opts.bo = Snacks.config.merge({}, buffer_bo, {
 		buftype = "acwrite",
 		swapfile = false,
 		filetype = "markdown.tea",
 	})
+	
+	-- Store buffer-specific wo options
+	local buffer_wo = self.opts.buffer and self.opts.buffer.wo or {}
+	self.opts.wo = Snacks.config.merge({}, buffer_wo, self.opts.wo or {})
+	
 	vim.b[buf].snacks_tea = {
 		repo = item.repo,
 		type = item.type,
@@ -77,6 +85,23 @@ function M:keys()
 			end
 		end
 	end
+	
+	-- Add buffer-local commands
+	vim.api.nvim_buf_create_user_command(self.buf, "TeaRefresh", function()
+		self:update()
+	end, { desc = "Refresh PR buffer" })
+	
+	vim.api.nvim_buf_create_user_command(self.buf, "TeaToggleComments", function()
+		local display = self.opts.buffer and self.opts.buffer.display or {}
+		display.show_comments = not display.show_comments
+		self:update()
+	end, { desc = "Toggle PR comments visibility" })
+	
+	vim.api.nvim_buf_create_user_command(self.buf, "TeaToggleDiff", function()
+		local display = self.opts.buffer and self.opts.buffer.display or {}
+		display.show_diff = not display.show_diff
+		self:update()
+	end, { desc = "Toggle PR diff visibility" })
 end
 
 function M:valid()

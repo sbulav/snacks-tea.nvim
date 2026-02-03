@@ -28,9 +28,13 @@ M.actions.tea_actions = {
 		local actions = M.get_actions(item, ctx)
 		actions.tea_actions = nil -- remove this action
 
+		-- Get layout config for actions
+		local tea_config = require("snacks.tea").config()
+		local actions_layout = tea_config.layout and tea_config.layout.actions or {}
+		
 		-- Use direct config instead of string lookup
 		local source = require("snacks.picker.source.tea")
-		Snacks.picker.pick({
+		local picker_opts = {
 			title = "  Forgejo Actions",
 			finder = source.actions,
 			format = source.actions_format,
@@ -69,7 +73,12 @@ M.actions.tea_actions = {
 				it.action.action(item, ctx)
 				picker:close()
 			end,
-		})
+		}
+		
+		-- Merge with actions layout config
+		picker_opts = vim.tbl_deep_extend("force", picker_opts, actions_layout)
+		
+		Snacks.picker.pick(picker_opts)
 	end,
 }
 
@@ -84,9 +93,14 @@ M.actions.tea_diff = {
 		if not item then
 			return
 		end
-		-- Get the config and call picker directly
-		local config = require("snacks.picker.config.tea")
-		local picker_config = vim.tbl_deep_extend("force", config.tea_diff or {}, {
+		-- Get the config function and call it to get base config
+		local config_module = require("snacks.picker.config.tea")
+		local base_config = type(config_module.tea_diff) == "function" 
+			and config_module.tea_diff() 
+			or config_module.tea_diff
+		
+		-- Merge with item-specific options
+		local picker_config = vim.tbl_deep_extend("force", base_config or {}, {
 			show_delay = 0,
 			repo = item.repo,
 			pr = item.number,
@@ -425,7 +439,10 @@ function M.edit(ctx)
 	local actions = preview and preview.opts.actions or {}
 	local parent = ctx.main or preview and preview.win or vim.api.nvim_get_current_win()
 
-	local height = config.scratch.height or 15
+	-- Get scratch height from ui config or layout config
+	local height = (config.layout and config.layout.create and config.layout.create.scratch and config.layout.create.scratch.height)
+		or (config.ui and config.ui.scratch and config.ui.scratch.height)
+		or 20
 	local opts = Snacks.win.resolve({
 		relative = "win",
 		width = 0,

@@ -56,26 +56,39 @@ function M.format(item)
 	local config = require("snacks.tea").config()
 	local ret = {} ---@type snacks.picker.Highlight[]
 	local icons = config.icons
+	local ui_hl = config.ui and config.ui.highlights or {}
 
-	-- State icon
+	-- State icon with dynamic highlight
 	local state_icon = icons.pr[item.state] or icons.pr.other
-	local state_hl = "SnacksTeaPr" .. item.state:sub(1, 1):upper() .. item.state:sub(2)
-	ret[#ret + 1] = { state_icon .. " ", state_hl }
+	local state_hl_name = (ui_hl.pr_state and ui_hl.pr_state[item.state]) 
+		or "SnacksTeaPr" .. item.state:sub(1, 1):upper() .. item.state:sub(2)
+	ret[#ret + 1] = { state_icon .. " ", state_hl_name }
 
-	-- PR number
-	ret[#ret + 1] = { "#" .. item.number .. " ", "Number" }
+	-- PR number with dynamic highlight
+	local number_hl = ui_hl.number or "Number"
+	ret[#ret + 1] = { "#" .. item.number .. " ", number_hl }
 
-	-- Title
-	ret[#ret + 1] = { item.title or "", "Normal" }
+	-- Title with dynamic highlight
+	local title_hl = ui_hl.title or "Normal"
+	ret[#ret + 1] = { item.title or "", title_hl }
 
-	-- Author
+	-- Author with dynamic highlight
 	if item.author then
 		ret[#ret + 1] = { " " }
-		ret[#ret + 1] = { icons.user, "SnacksTeaGray" }
-		ret[#ret + 1] = { item.author, "SnacksTeaGray" }
+		local author_hl = ui_hl.author or "SnacksTeaGray"
+		ret[#ret + 1] = { icons.user, author_hl }
+		ret[#ret + 1] = { item.author, author_hl }
 	end
 
-	-- Labels
+	-- Assignee (if available and different from author)
+	if item.assignee and item.assignee ~= item.author then
+		ret[#ret + 1] = { " " }
+		local assignee_hl = ui_hl.assignee or "Function"
+		ret[#ret + 1] = { "→", assignee_hl }
+		ret[#ret + 1] = { item.assignee, assignee_hl }
+	end
+
+	-- Labels with dynamic highlight
 	if item.labels and #item.labels > 0 then
 		for _, label in ipairs(item.labels) do
 			ret[#ret + 1] = { " " }
