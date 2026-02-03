@@ -145,27 +145,43 @@ function M.cmd(cb, opts)
 
 							-- Provide helpful error messages
 							if stderr:match("not a gitea/forgejo repository") or stderr:match("No Gitea login") then
+								-- Check if this is a GitHub remote
+								local git_root = Snacks.git.get_root(vim.uv.cwd() or ".")
+								local is_github = false
+								if git_root then
+									local remote_url = vim.fn.system("git -C " .. vim.fn.shellescape(git_root) .. " remote get-url origin 2>/dev/null")
+									is_github = remote_url:match("github%.com")
+								end
+								
 								helpful_msg = {
-									"This doesn't appear to be a Gitea/Forgejo repository",
+									is_github and "This is a GitHub repository, not Forgejo/Gitea!" or "This doesn't appear to be a Gitea/Forgejo repository",
 									"",
-									"Make sure you:",
-									"  1. Have a Forgejo or Gitea remote configured",
-									"  2. Have tea CLI configured: tea login add",
-									"  3. Are in the correct repository",
+									is_github and "Tea CLI only works with Forgejo/Gitea instances." or "Make sure you:",
+									is_github and "For GitHub, use snacks.gh instead." or "  1. Have a Forgejo or Gitea remote configured (not GitHub!)",
+									not is_github and "  2. Have tea CLI configured: tea login add" or "",
+									not is_github and "  3. Are in the correct repository" or "",
 								}
-							elseif stderr:match("could not open a new TTY") then
+							elseif stderr:match("could not open a new TTY") or stderr:match("Get confirm failed") then
 								-- This is just a warning, not a fatal error
 								-- If there's output, the command likely succeeded
 								if proc:out() and proc:out():match("%S") then
 									-- Has output, treat as success
 									return cb(proc, proc:out())
 								end
+								-- Check if this is a GitHub remote
+								local git_root = Snacks.git.get_root(vim.uv.cwd() or ".")
+								local is_github = false
+								if git_root then
+									local remote_url = vim.fn.system("git -C " .. vim.fn.shellescape(git_root) .. " remote get-url origin 2>/dev/null")
+									is_github = remote_url:match("github%.com")
+								end
+								
 								helpful_msg = {
-									"Tea CLI TTY warning (usually harmless)",
+									is_github and "This is a GitHub repository!" or "Tea CLI TTY warning (usually harmless)",
 									"",
-									"If this persists, check:",
-									"  1. Tea CLI is configured: tea login list",
-									"  2. Repository has Forgejo/Gitea remote",
+									is_github and "Tea CLI only works with Forgejo/Gitea." or "If this persists, check:",
+									is_github and "For GitHub PRs, use snacks.gh instead." or "  1. Tea CLI is configured: tea login list",
+									not is_github and "  2. Repository has Forgejo/Gitea remote" or "",
 								}
 							else
 								helpful_msg = { stderr }

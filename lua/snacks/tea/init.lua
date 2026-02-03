@@ -271,6 +271,19 @@ function M.pr(opts)
 		}, { title = "Tea PR Picker" })
 		return
 	end
+	
+	-- Check if this is a GitHub remote
+	local remote_url = vim.fn.system("git -C " .. vim.fn.shellescape(git_root) .. " remote get-url origin 2>/dev/null")
+	if remote_url:match("github%.com") then
+		Snacks.notify.warn({
+			"This is a GitHub repository!",
+			"",
+			"Tea CLI only works with Forgejo/Gitea instances.",
+			"For GitHub PRs, use snacks.gh instead:",
+			"  :lua Snacks.gh.pr()",
+		}, { title = "Tea PR Picker" })
+		return
+	end
 
 	-- Check if tea is available (silent mode)
 	if not M.health_check({ silent = true }) then
@@ -328,6 +341,19 @@ function M.pr_create(opts)
 			"  1. Being in a git repository",
 			"  2. Having a Forgejo/Gitea remote",
 			"  3. Tea CLI configured (run: tea login add)",
+		}, { title = "Tea PR Create" })
+		return
+	end
+	
+	-- Check if this is a GitHub remote
+	local remote_url = vim.fn.system("git -C " .. vim.fn.shellescape(git_root) .. " remote get-url origin 2>/dev/null")
+	if remote_url:match("github%.com") then
+		Snacks.notify.warn({
+			"This is a GitHub repository!",
+			"",
+			"Tea CLI only works with Forgejo/Gitea instances.",
+			"For GitHub PR creation, use snacks.gh instead:",
+			"  :lua Snacks.gh.pr_create()",
 		}, { title = "Tea PR Create" })
 		return
 	end
