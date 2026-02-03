@@ -85,7 +85,7 @@ local defaults = {
 			relativenumber = false,
 			foldexpr = "v:lua.vim.treesitter.foldexpr()",
 			foldmethod = "expr",
-			foldlevel = 1, -- Collapse sections by default
+			foldlevel = 99, -- Show all folds expanded by default
 			concealcursor = "n",
 			conceallevel = 2,
 			list = false,
@@ -107,8 +107,8 @@ local defaults = {
 			show_diff = true,
 			show_reviews = true,
 			show_checks = true,
-			fold_comments = true, -- Auto-fold comment threads
-			fold_diff = true, -- Auto-fold diff section
+			fold_comments = false, -- Auto-fold comment threads
+			fold_diff = false, -- Auto-fold diff section
 		},
 		--- Optional integrations
 		integrations = {

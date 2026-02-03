@@ -437,42 +437,28 @@ function M.edit(ctx)
 	local preview = ctx.picker and ctx.picker.preview and ctx.picker.preview.win:valid() and ctx.picker.preview.win
 		or nil
 	local actions = preview and preview.opts.actions or {}
-	local parent = ctx.main or preview and preview.win or vim.api.nvim_get_current_win()
+	local parent = ctx.main or preview and preview.win or nil
 
-	-- Get scratch height from ui config or layout config
-	local height = (config.layout and config.layout.create and config.layout.create.scratch and config.layout.create.scratch.height)
-		or (config.ui and config.ui.scratch and config.ui.scratch.height)
-		or 20
-	local opts = Snacks.win.resolve({
-		relative = "win",
-		width = 0,
-		backdrop = false,
+	-- Get scratch dimensions from ui config or layout config
+	local scratch_config = (config.layout and config.layout.create and config.layout.create.scratch)
+		or (config.ui and config.ui.scratch)
+		or {}
+	local height = scratch_config.height or 20
+	local width = scratch_config.width or 160
+	
+	-- Use editor-relative positioning for consistent layout like pr_create
+	local opts = {
+		relative = "editor",
+		width = width,
 		height = height,
-		actions = {
-			cycle_win = actions.cycle_win,
-			preview_scroll_up = actions.preview_scroll_up,
-			preview_scroll_down = actions.preview_scroll_down,
-		},
-		win = parent,
+		backdrop = false,
+		border = "rounded",
+		title = " " .. (ctx.opts.title and M.tpl(ctx.opts.title, ctx.item, ctx.opts) or "Comment") .. " ",
+		title_pos = "center",
 		wo = {
 			winhighlight = "NormalFloat:Normal,FloatTitle:SnacksForgejoScratchTitle,FloatBorder:SnacksForgejoScratchBorder",
 		},
-		border = "top_bottom",
-		row = function(win)
-			local border = win:border_size()
-			return win:parent_size().height - height - border.top - border.bottom
-		end,
 		on_win = function(win)
-			if vim.api.nvim_win_is_valid(parent) then
-				local parent_row = vim.api.nvim_win_call(parent, vim.fn.winline) ---@type number
-				parent_row = parent_row + vim.wo[parent].scrolloff
-				local row = vim.api.nvim_win_get_height(parent) - win:size().height
-				if parent_row > row then
-					vim.api.nvim_win_call(parent, function()
-						vim.cmd(("normal! %d%s"):format(parent_row - row, Snacks.util.keycode("<C-e>")))
-					end)
-				end
-			end
 			vim.g.snacks_picker_cycle_win = win.win
 			vim.schedule(function()
 				vim.cmd.startinsert()
@@ -490,13 +476,21 @@ function M.edit(ctx)
 				mode = { "n", "i" },
 			},
 		},
-	}, preview and {
-		keys = {
+	}
+	
+	-- Add preview-specific keybindings if available
+	if preview then
+		opts.keys = vim.tbl_extend("force", opts.keys or {}, {
 			["<a-w>"] = { "cycle_win", mode = { "i", "n" } },
 			["<c-b>"] = { "preview_scroll_up", mode = { "i", "n" } },
 			["<c-f>"] = { "preview_scroll_down", mode = { "i", "n" } },
-		},
-	} or nil)
+		})
+		opts.actions = {
+			cycle_win = actions.cycle_win,
+			preview_scroll_up = actions.preview_scroll_up,
+			preview_scroll_down = actions.preview_scroll_down,
+		}
+	end
 
 	Snacks.scratch({
 		ft = "markdown",
