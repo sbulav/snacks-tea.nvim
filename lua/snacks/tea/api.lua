@@ -1,4 +1,5 @@
 local Async = require("snacks.picker.util.async")
+local Git = require("snacks.tea.git")
 local Item = require("snacks.tea.item")
 local Proc = require("snacks.util.spawn")
 
@@ -145,13 +146,7 @@ function M.cmd(cb, opts)
 
 							-- Provide helpful error messages
 							if stderr:match("not a gitea/forgejo repository") or stderr:match("No Gitea login") then
-								-- Check if this is a GitHub remote
-								local git_root = Snacks.git.get_root(vim.uv.cwd() or ".")
-								local is_github = false
-								if git_root then
-									local remote_url = vim.fn.system("git -C " .. vim.fn.shellescape(git_root) .. " remote get-url origin 2>/dev/null")
-									is_github = remote_url:match("github%.com")
-								end
+								local is_github = Git.is_github_remote()
 								
 								helpful_msg = {
 									is_github and "This is a GitHub repository, not Forgejo/Gitea!" or "This doesn't appear to be a Gitea/Forgejo repository",
@@ -168,13 +163,7 @@ function M.cmd(cb, opts)
 									-- Has output, treat as success
 									return cb(proc, proc:out())
 								end
-								-- Check if this is a GitHub remote
-								local git_root = Snacks.git.get_root(vim.uv.cwd() or ".")
-								local is_github = false
-								if git_root then
-									local remote_url = vim.fn.system("git -C " .. vim.fn.shellescape(git_root) .. " remote get-url origin 2>/dev/null")
-									is_github = remote_url:match("github%.com")
-								end
+								local is_github = Git.is_github_remote()
 								
 								helpful_msg = {
 									is_github and "This is a GitHub repository!" or "Tea CLI TTY warning (usually harmless)",
@@ -500,7 +489,7 @@ end
 
 ---@async
 function M.current_pr()
-	local root = Snacks.git.get_root(vim.uv.cwd() or ".")
+	local root = Git.get_root()
 	if not root then
 		return
 	end

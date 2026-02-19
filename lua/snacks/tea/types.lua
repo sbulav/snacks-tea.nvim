@@ -73,9 +73,13 @@
 ---@field uri string
 ---@field repo string
 ---@field type "pr"
----@field number number
 ---@field status? string
 ---@field dirty? boolean
+
+---@class snacks.tea.Buf
+---@field buf number
+---@field opts snacks.tea.Config
+---@field item snacks.tea.api.View
 
 ---@class snacks.tea.api.View
 ---@field type "pr"

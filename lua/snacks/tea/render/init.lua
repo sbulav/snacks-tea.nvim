@@ -9,10 +9,15 @@ local ns = vim.api.nvim_create_namespace("snacks.tea.render")
 
 -- Fallback for missing fields
 local function safe_field(item, field, default)
-  local val = item[field]
-  if val == nil then return default or "" end
-  if type(field) == "table" and type(val) == "string" then return {} end  -- Coerce string to table for arrays like labels
-  return val
+	local val = item[field]
+	if val == nil then
+		return default or ""
+	end
+	-- Some fields like labels should be tables, handle string coercion
+	if type(default) == "table" and type(val) == "string" then
+		return {}
+	end
+	return val
 end
 
 local function parse_iso_to_timestamp(iso_str)

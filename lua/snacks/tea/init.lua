@@ -259,7 +259,8 @@ function M.pr(opts)
 	M.setup()
 
 	-- Check if we're in a git repository
-	local git_root = Snacks.git.get_root(vim.uv.cwd() or ".")
+	local Git = require("snacks.tea.git")
+	local git_root = Git.get_root()
 	if not git_root then
 		Snacks.notify.error({
 			"Not in a git repository",
@@ -271,10 +272,9 @@ function M.pr(opts)
 		}, { title = "Tea PR Picker" })
 		return
 	end
-	
+
 	-- Check if this is a GitHub remote
-	local remote_url = vim.fn.system("git -C " .. vim.fn.shellescape(git_root) .. " remote get-url origin 2>/dev/null")
-	if remote_url:match("github%.com") then
+	if Git.is_github_remote() then
 		Snacks.notify.warn({
 			"This is a GitHub repository!",
 			"",
@@ -332,7 +332,8 @@ function M.pr_create(opts)
 	M.setup()
 
 	-- Check if we're in a git repository
-	local git_root = Snacks.git.get_root(vim.uv.cwd() or ".")
+	local Git = require("snacks.tea.git")
+	local git_root = Git.get_root()
 	if not git_root then
 		Snacks.notify.error({
 			"Not in a git repository",
@@ -344,10 +345,9 @@ function M.pr_create(opts)
 		}, { title = "Tea PR Create" })
 		return
 	end
-	
+
 	-- Check if this is a GitHub remote
-	local remote_url = vim.fn.system("git -C " .. vim.fn.shellescape(git_root) .. " remote get-url origin 2>/dev/null")
-	if remote_url:match("github%.com") then
+	if Git.is_github_remote() then
 		Snacks.notify.warn({
 			"This is a GitHub repository!",
 			"",

@@ -1,5 +1,21 @@
 local M = {}
 
+--- Check if the current repository is hosted on GitHub
+---@param remote? string Remote name (default: "origin")
+---@return boolean is_github True if remote URL points to github.com
+function M.is_github_remote(remote)
+	remote = remote or "origin"
+	local url = vim.fn.system(string.format("git remote get-url %s 2>/dev/null", remote)):gsub("\n", "")
+	return url:match("github%.com") ~= nil
+end
+
+--- Get the git root directory for the given path
+---@param path? string Path to check (default: current directory)
+---@return string? root Git root directory or nil if not in a git repo
+function M.get_root(path)
+	return Snacks.git.get_root(path or vim.uv.cwd() or ".")
+end
+
 --- Get current git branch name
 ---@return string? branch Current branch name or nil if not in a git repo
 function M.get_current_branch()
