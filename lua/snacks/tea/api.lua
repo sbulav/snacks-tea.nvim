@@ -111,6 +111,7 @@ function M.cmd(cb, opts)
 
 	local config = require("snacks.tea").config()
 	local tea_cmd = config.tea.cmd or "tea"
+	local timeout = opts.timeout or config.tea.timeout or 30000
 
 	if config.tea.remote then
 		vim.list_extend(args, { "--remote", config.tea.remote })
@@ -135,7 +136,7 @@ function M.cmd(cb, opts)
 		cmd = tea_cmd,
 		args = args,
 		input = opts.input,
-		timeout = 30000,
+		timeout = timeout,
 		on_exit = function(proc, err)
 			if err then
 				vim.schedule(function()
@@ -144,8 +145,17 @@ function M.cmd(cb, opts)
 							local stderr = proc:err() or ""
 							local helpful_msg = {}
 
-							-- Provide helpful error messages
-							if stderr:match("not a gitea/forgejo repository") or stderr:match("No Gitea login") then
+							-- Check for timeout
+							if proc.timed_out then
+								helpful_msg = {
+									"Tea CLI command timed out after " .. timeout .. "ms",
+									"",
+									"Command: tea " .. table.concat(args, " "),
+									"",
+									"To increase timeout, set:",
+									"  require('snacks').setup({ tea = { tea = { timeout = 60000 } } })",
+								}
+							elseif stderr:match("not a gitea/forgejo repository") or stderr:match("No Gitea login") then
 								local is_github = Git.is_github_remote()
 								
 								helpful_msg = {

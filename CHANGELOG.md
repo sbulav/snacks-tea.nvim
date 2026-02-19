@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-02-19
+
+### Added
+
+- Config validation with helpful error messages for invalid settings
+- Configurable timeout for tea CLI commands (default: 30s, configurable via `tea.timeout`)
+- Timeout error messages with guidance on increasing timeout
+
+### Changed
+
+- Extract GitHub remote detection to `Git.is_github_remote()` utility function
+- Centralize git root detection in `Git.get_root()` wrapper
+
+### Fixed
+
+- Incorrect type check in `render/init.lua` `safe_field` function
+
 ## [0.1.0] - 2025-02-19
 
 ### Added
@@ -40,4 +57,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MINOR** version for new features (backwards compatible)
 - **PATCH** version for bug fixes (backwards compatible)
 
+[0.2.0]: https://github.com/sbulav/snacks-tea.nvim/releases/tag/v0.2.0
 [0.1.0]: https://github.com/sbulav/snacks-tea.nvim/releases/tag/v0.1.0

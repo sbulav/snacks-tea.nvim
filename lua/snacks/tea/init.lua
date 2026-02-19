@@ -14,7 +14,7 @@ local M = setmetatable({}, {
 M.meta = {
 	desc = "Tea CLI integration for Forgejo/Gitea",
 	needs_setup = false,
-	version = "0.1.0",
+	version = "0.2.0",
 }
 
 ---@class snacks.tea.Config
@@ -25,6 +25,7 @@ local defaults = {
 		cmd = "tea",
 		login = nil,
 		remote = "origin",
+		timeout = 30000, -- 30 seconds default timeout
 	},
 
   --- Keymaps for Forgejo buffers
@@ -396,8 +397,80 @@ function M.pr_create(opts)
 end
 
 ---@private
+local function validate_config(config)
+	local errors = {}
+
+	-- Validate tea.cmd
+	if config.tea then
+		if config.tea.cmd and type(config.tea.cmd) ~= "string" then
+			table.insert(errors, "tea.cmd must be a string, got: " .. type(config.tea.cmd))
+		end
+		if config.tea.remote and type(config.tea.remote) ~= "string" then
+			table.insert(errors, "tea.remote must be a string, got: " .. type(config.tea.remote))
+		end
+		if config.tea.login and type(config.tea.login) ~= "string" then
+			table.insert(errors, "tea.login must be a string, got: " .. type(config.tea.login))
+		end
+		if config.tea.timeout and type(config.tea.timeout) ~= "number" then
+			table.insert(errors, "tea.timeout must be a number, got: " .. type(config.tea.timeout))
+		elseif config.tea.timeout and config.tea.timeout < 1000 then
+			table.insert(errors, "tea.timeout should be at least 1000ms, got: " .. config.tea.timeout)
+		end
+	end
+
+	-- Validate diff config
+	if config.diff then
+		if config.diff.min and type(config.diff.min) ~= "number" then
+			table.insert(errors, "diff.min must be a number, got: " .. type(config.diff.min))
+		end
+		if config.diff.wrap and type(config.diff.wrap) ~= "number" then
+			table.insert(errors, "diff.wrap must be a number, got: " .. type(config.diff.wrap))
+		end
+	end
+
+	-- Validate ui.scratch
+	if config.ui and config.ui.scratch then
+		if config.ui.scratch.width and type(config.ui.scratch.width) ~= "number" then
+			table.insert(errors, "ui.scratch.width must be a number, got: " .. type(config.ui.scratch.width))
+		end
+		if config.ui.scratch.height and type(config.ui.scratch.height) ~= "number" then
+			table.insert(errors, "ui.scratch.height must be a number, got: " .. type(config.ui.scratch.height))
+		end
+	end
+
+	-- Validate keys format
+	if config.keys then
+		for name, km in pairs(config.keys) do
+			if km ~= false then
+				if type(km) ~= "table" then
+					table.insert(errors, ("keys.%s must be a table or false, got: %s"):format(name, type(km)))
+				elseif not km[1] then
+					table.insert(errors, ("keys.%s missing lhs (first element)"):format(name))
+				end
+			end
+		end
+	end
+
+	-- Report errors
+	if #errors > 0 then
+		Snacks.notify.error({
+			"Invalid snacks-tea.nvim configuration:",
+			"",
+			unpack(vim.tbl_map(function(e) return "  - " .. e end, errors)),
+		}, { title = "Tea Config" })
+		return false
+	end
+
+	return true
+end
+
+---@private
 function M.config()
-	M._config = M._config or Snacks.config.get("tea", defaults)
+	if not M._config then
+		local cfg = Snacks.config.get("tea", defaults)
+		validate_config(cfg)
+		M._config = cfg
+	end
 	return M._config
 end
 

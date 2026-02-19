@@ -14,6 +14,7 @@
 ---@field cmd? string Path to tea binary (default: "tea")
 ---@field login? string Specific login to use, or nil for auto-detect
 ---@field remote? string Git remote to use (default: "origin")
+---@field timeout? number Timeout for tea CLI commands in ms (default: 30000)
 
 ---@alias snacks.tea.Keymap.fn fun(item:snacks.picker.tea.Item, buf:snacks.tea.Buf)
 
@@ -97,6 +98,7 @@
 ---@field repo? string
 ---@field input? string
 ---@field notify? boolean
+---@field timeout? number Timeout in milliseconds
 ---@field on_error? fun(proc: snacks.spawn.Proc, err: string)
 
 ---@class snacks.tea.api.Fetch
