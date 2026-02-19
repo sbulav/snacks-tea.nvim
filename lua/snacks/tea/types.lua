@@ -81,6 +81,11 @@
 ---@field opts snacks.tea.Config
 ---@field item snacks.tea.api.View
 
+---@class snacks.tea.Meta
+---@field desc string
+---@field needs_setup boolean
+---@field version string
+
 ---@class snacks.tea.api.View
 ---@field type "pr"
 ---@field repo string

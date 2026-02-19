@@ -14,6 +14,7 @@ local M = setmetatable({}, {
 M.meta = {
 	desc = "Tea CLI integration for Forgejo/Gitea",
 	needs_setup = false,
+	version = "0.1.0",
 }
 
 ---@class snacks.tea.Config

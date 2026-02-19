@@ -14,6 +14,17 @@ The plugin wraps the [tea CLI](https://gitea.com/gitea/tea) for PR management.
 - snacks.nvim (required dependency)
 - tea CLI (external tool for Forgejo/Gitea API)
 
+## Versioning
+
+This project follows [Semantic Versioning](https://semver.org/). The version is defined in `lua/snacks/tea/init.lua` in `M.meta.version`.
+
+When making changes:
+- **MAJOR**: Breaking changes to public API
+- **MINOR**: New features (backwards compatible)
+- **PATCH**: Bug fixes (backwards compatible)
+
+Update CHANGELOG.md for all changes following [Keep a Changelog](https://keepachangelog.com/) format.
+
 ## Build/Lint/Test Commands
 
 This plugin uses plenary.nvim for testing. No automated CI is configured.
