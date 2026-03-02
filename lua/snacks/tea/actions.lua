@@ -36,11 +36,10 @@ M.actions.tea_actions = {
 		local source = require("snacks.picker.source.tea")
 		local picker_opts = {
 			title = "  Forgejo Actions",
-			finder = source.actions,
+			finder = source.actions_finder,
 			format = source.actions_format,
 			sort = { fields = { "priority:desc", "idx" } },
 			item = item,
-			ctx = ctx,
 			tea_actions = actions, -- Use custom field name to avoid conflict with picker's actions
 			win = {
 				preview = {

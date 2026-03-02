@@ -126,10 +126,10 @@ end
 
 ---@param opts { item: snacks.picker.tea.Item, ctx?: table, tea_actions?: table }
 ---@type snacks.picker.finder
-function M.actions(opts, ctx)
+function M.actions_finder(opts, ctx)
 	local item = opts.item
 	-- Use pre-computed actions from tea_actions field (not opts.actions which has picker actions)
-	local actions = opts.tea_actions or Actions.get_actions(item, opts.ctx or ctx)
+	local actions = opts.tea_actions or Actions.get_actions(item, ctx)
 
 	return function(cb)
 		for name, action in pairs(actions) do

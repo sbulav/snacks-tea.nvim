@@ -1,0 +1,276 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+BASE_URL="https://forgejo.demo.local/acme/snacks-tea.nvim"
+
+show_version() {
+  echo "tea version 0.10.0-demo"
+}
+
+list_prs() {
+  local state="open"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --state)
+        state="$2"
+        shift 2
+        ;;
+      --limit|--fields|--output|--repo|--remote|--login)
+        shift 2
+        ;;
+      --*)
+        shift
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+
+  case "$state" in
+    open)
+      cat <<EOF
+[
+  {
+    "index": 42,
+    "title": "Improve PR buffer readability",
+    "state": "open",
+    "author": "alex",
+    "author-id": 101,
+    "url": "$BASE_URL/pulls/42",
+    "body": "This PR improves default spacing and section grouping in tea:// buffers.",
+    "base": "main",
+    "base-commit": "a1b2c3d4",
+    "head": "feat/buffer-readability",
+    "created": "2026-02-20T09:15:00Z",
+    "updated": "2026-02-21T10:40:00Z",
+    "deadline": "",
+    "assignees": ["maria"],
+    "milestone": "v0.3",
+    "labels": [
+      { "name": "ui", "color": "1f6feb" },
+      { "name": "enhancement", "color": "2ea043" }
+    ],
+    "mergeable": true,
+    "diff": "diff --git a/lua/snacks/tea/render/init.lua b/lua/snacks/tea/render/init.lua\nindex 1234567..89abcde 100644\n--- a/lua/snacks/tea/render/init.lua\n+++ b/lua/snacks/tea/render/init.lua\n@@ -10,6 +10,10 @@ local ns = vim.api.nvim_create_namespace(\"snacks.tea.render\")\n+-- Improve section spacing in render output\n+\n local function safe_field(item, field, default)\n   local val = item[field]\n   if val == nil then return default or \"\" end\n",
+    "patch": ""
+  },
+  {
+    "index": 43,
+    "title": "Fix Tea comment parsing edge cases",
+    "state": "open",
+    "author": "maria",
+    "author-id": 102,
+    "url": "$BASE_URL/pulls/43",
+    "body": "Handle blank lines and markdown lists in tea issues --comments output.",
+    "base": "main",
+    "base-commit": "a1b2c3d4",
+    "head": "fix/comment-parser",
+    "created": "2026-02-19T15:05:00Z",
+    "updated": "2026-02-22T11:05:00Z",
+    "deadline": "",
+    "assignees": ["alex"],
+    "milestone": "v0.3",
+    "labels": [
+      { "name": "bug", "color": "d73a49" }
+    ],
+    "mergeable": true,
+    "diff": "",
+    "patch": ""
+  }
+]
+EOF
+      ;;
+    closed)
+      cat <<EOF
+[
+  {
+    "index": 41,
+    "title": "Draft: add PR templates support",
+    "state": "closed",
+    "author": "review-bot",
+    "author-id": 9001,
+    "url": "$BASE_URL/pulls/41",
+    "body": "Early prototype for PR templates. Closed pending UX review.",
+    "base": "main",
+    "base-commit": "a1b2c3d4",
+    "head": "draft/pr-templates",
+    "created": "2026-02-18T12:00:00Z",
+    "updated": "2026-02-18T18:35:00Z",
+    "deadline": "",
+    "assignees": [],
+    "milestone": "",
+    "labels": [
+      { "name": "draft", "color": "8b949e" }
+    ],
+    "mergeable": false,
+    "diff": "",
+    "patch": ""
+  }
+]
+EOF
+      ;;
+    all)
+      cat <<EOF
+[
+  {
+    "index": 42,
+    "title": "Improve PR buffer readability",
+    "state": "open",
+    "author": "alex",
+    "author-id": 101,
+    "url": "$BASE_URL/pulls/42",
+    "body": "This PR improves default spacing and section grouping in tea:// buffers.",
+    "base": "main",
+    "base-commit": "a1b2c3d4",
+    "head": "feat/buffer-readability",
+    "created": "2026-02-20T09:15:00Z",
+    "updated": "2026-02-21T10:40:00Z",
+    "deadline": "",
+    "assignees": ["maria"],
+    "milestone": "v0.3",
+    "labels": [
+      { "name": "ui", "color": "1f6feb" },
+      { "name": "enhancement", "color": "2ea043" }
+    ],
+    "mergeable": true,
+    "diff": "",
+    "patch": ""
+  },
+  {
+    "index": 43,
+    "title": "Fix Tea comment parsing edge cases",
+    "state": "open",
+    "author": "maria",
+    "author-id": 102,
+    "url": "$BASE_URL/pulls/43",
+    "body": "Handle blank lines and markdown lists in tea issues --comments output.",
+    "base": "main",
+    "base-commit": "a1b2c3d4",
+    "head": "fix/comment-parser",
+    "created": "2026-02-19T15:05:00Z",
+    "updated": "2026-02-22T11:05:00Z",
+    "deadline": "",
+    "assignees": ["alex"],
+    "milestone": "v0.3",
+    "labels": [
+      { "name": "bug", "color": "d73a49" }
+    ],
+    "mergeable": true,
+    "diff": "",
+    "patch": ""
+  },
+  {
+    "index": 41,
+    "title": "Draft: add PR templates support",
+    "state": "closed",
+    "author": "review-bot",
+    "author-id": 9001,
+    "url": "$BASE_URL/pulls/41",
+    "body": "Early prototype for PR templates. Closed pending UX review.",
+    "base": "main",
+    "base-commit": "a1b2c3d4",
+    "head": "draft/pr-templates",
+    "created": "2026-02-18T12:00:00Z",
+    "updated": "2026-02-18T18:35:00Z",
+    "deadline": "",
+    "assignees": [],
+    "milestone": "",
+    "labels": [
+      { "name": "draft", "color": "8b949e" }
+    ],
+    "mergeable": false,
+    "diff": "",
+    "patch": ""
+  }
+]
+EOF
+      ;;
+    *)
+      echo "[]"
+      ;;
+  esac
+}
+
+show_comments() {
+  local number="$1"
+  cat <<EOF
+Issue #$number
+
+## Comments
+**@review-bot** wrote on 2026-02-20 10:15:
+Nice progress. Please add one screenshot of the new render output.
+
+**@alex** wrote on 2026-02-20 12:02:
+Added screenshot and cleaned up the section headers.
+
+**@maria** wrote on 2026-02-21 09:44:
+Looks good to me now.
+EOF
+}
+
+action_ok() {
+  exit 0
+}
+
+comment_ok() {
+  local number="$1"
+  shift || true
+  local body="${*:-}"
+  if [[ -n "$body" ]]; then
+    printf 'Comment added to PR #%s\n' "$number"
+  fi
+  exit 0
+}
+
+create_ok() {
+  echo "$BASE_URL/pulls/99"
+  exit 0
+}
+
+main() {
+  local cmd="${1:-}"
+  [[ $# -gt 0 ]] && shift
+
+  case "$cmd" in
+    --version|version)
+      show_version
+      ;;
+    pr)
+      local sub="${1:-}"
+      [[ $# -gt 0 ]] && shift
+      case "$sub" in
+        ls)
+          list_prs "$@"
+          ;;
+        checkout|approve|reject|review|close|reopen|merge)
+          action_ok
+          ;;
+        create)
+          create_ok
+          ;;
+        comment)
+          comment_ok "$@"
+          ;;
+        *)
+          action_ok
+          ;;
+      esac
+      ;;
+    comment)
+      comment_ok "$@"
+      ;;
+    issues)
+      local number="${1:-42}"
+      [[ $# -gt 0 ]] && shift
+      show_comments "$number"
+      ;;
+    *)
+      action_ok
+      ;;
+  esac
+}
+
+main "$@"

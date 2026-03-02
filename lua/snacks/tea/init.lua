@@ -426,7 +426,7 @@ function M.setup(ev)
 				-- Register finders
 				Snacks.picker.finder = Snacks.picker.finder or {}
 				Snacks.picker.finder.tea_pr = tea_source.pr
-				Snacks.picker.finder.tea_actions = tea_source.actions
+				Snacks.picker.finder.tea_actions = tea_source.actions_finder
 				Snacks.picker.finder.tea_diff = tea_source.diff
 
 				-- Register actions

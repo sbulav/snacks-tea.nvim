@@ -51,7 +51,7 @@ M.tea_actions = function()
 	
 	local base = {
 		title = "  Forgejo Actions",
-		finder = require("snacks.picker.source.tea").actions,
+		finder = require("snacks.picker.source.tea").actions_finder,
 		format = require("snacks.picker.source.tea").actions_format,
 		sort = { fields = { "priority:desc", "idx" } },
 	}
