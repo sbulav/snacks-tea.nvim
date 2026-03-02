@@ -5,7 +5,7 @@ A Forgejo/Gitea integration plugin for Neovim, built as an extension for
 CLI](https://gitea.com/gitea/tea) to provide native PR management directly
 within Neovim.
 
-<img width="3070" height="2196" alt="ss_1769422957" src="https://github.com/user-attachments/assets/3c57db80-101c-4ca0-b817-4fa8fffcda62" />
+![snacks-tea-demo-optimized2](https://github.com/user-attachments/assets/d692483e-99de-4acb-9a8b-ae7299555ea4)
 
 ## Features
 
